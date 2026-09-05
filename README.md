@@ -79,3 +79,37 @@ mkdir -p apps/<name>
 Copy `apps/docs` as a starting point, change `name`, the dev/start `--port`, and the
 metadata in `src/app/layout.tsx`. Turborepo picks it up from the `apps/*` glob with no
 further configuration.
+
+## Deploying to Vercel
+
+Each app is a **separate Vercel project** pointing at the same repository. Create one
+project per app and set its **Root Directory**:
+
+| Vercel project         | Root Directory |
+| ---------------------- | -------------- |
+| `masai-hackathon-web`  | `apps/web`     |
+| `masai-hackathon-docs` | `apps/docs`    |
+
+Leave **"Include files outside of the Root Directory"** enabled (Vercel turns this on
+automatically for workspace monorepos) — it is what lets `apps/web` resolve `@repo/ui`
+and install from the root lockfile. Everything else is auto-detected: Vercel reads
+`packageManager` from the root `package.json` and runs `npm install` at the repo root.
+
+`apps/*/vercel.json` sets an `ignoreCommand` of `npx turbo-ignore <package>`, so a push
+that only touches `apps/docs` will skip the `web` build entirely. Turborepo also uses
+Vercel's Remote Cache automatically when building there.
+
+### Via the dashboard
+
+1. Push to GitHub.
+2. **Add New → Project**, import the repo, set Root Directory to `apps/web`, deploy.
+3. Repeat for `apps/docs`.
+
+### Via the CLI
+
+```bash
+npm i -g vercel
+vercel link --cwd apps/web
+vercel --cwd apps/web        # preview
+vercel --prod --cwd apps/web # production
+```

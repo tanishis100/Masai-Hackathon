@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react"
 import { Button } from "@repo/ui/button"
 
-import { GEMINI_MODELS, verifyKey } from "@/lib/gemini"
+import { verifyKey } from "@/lib/gemini"
 
 type Props = {
   onClose: () => void
@@ -38,10 +38,11 @@ export function SettingsDialog({
     setState("checking")
     setMessage("")
     try {
-      await verifyKey(draft, model)
+      const compatibleModel = await verifyKey(draft, model)
       setApiKey(draft)
+      setModel(compatibleModel)
       setState("ok")
-      setMessage("Key works. You're ready to go.")
+      setMessage("Key works. A compatible model is ready to use.")
       setTimeout(onClose, 700)
     } catch (err) {
       setState("bad")
@@ -97,21 +98,9 @@ export function SettingsDialog({
           </a>
         </p>
 
-        <label className="mt-5 block text-sm font-medium" htmlFor="gemini-model">
-          Model
-        </label>
-        <select
-          id="gemini-model"
-          value={model}
-          onChange={(e) => setModel(e.target.value)}
-          className="mt-1.5 w-full rounded-md border border-neutral-300 bg-white px-3 py-2 text-sm outline-none focus:border-brand-500 dark:border-neutral-700 dark:bg-neutral-900"
-        >
-          {GEMINI_MODELS.map((m) => (
-            <option key={m.id} value={m.id}>
-              {m.label}
-            </option>
-          ))}
-        </select>
+        <div className="mt-5 rounded-md bg-neutral-100 px-3 py-2.5 text-sm text-neutral-600 dark:bg-neutral-900 dark:text-neutral-300">
+          A compatible model is selected automatically for your key.
+        </div>
 
         {message ? (
           <p

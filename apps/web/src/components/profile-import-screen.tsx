@@ -9,23 +9,42 @@ import {
   extractResumeText,
 } from "@/lib/extract-text"
 
+function MarkdownPreview({ value }: { value: string }) {
+  return (
+    <div className="max-h-80 overflow-y-auto rounded-xl border border-neutral-200 bg-white p-5 text-sm leading-6 text-neutral-700">
+      {value.split("\n").map((line, index) => {
+        const content = line.trim()
+        if (!content) return <div key={index} className="h-4" />
+        if (content.startsWith("# ")) return <h2 key={index} className="text-xl font-bold text-neutral-950">{content.slice(2)}</h2>
+        if (content.startsWith("## ")) return <h3 key={index} className="mt-3 text-sm font-bold text-[#0a66c2]">{content.slice(3)}</h3>
+        if (content.startsWith("- ")) return <p key={index} className="flex gap-2"><span className="text-[#0a66c2]">•</span><span>{content.slice(2)}</span></p>
+        if (content.startsWith("**") && content.endsWith("**")) return <p key={index} className="font-semibold text-neutral-950">{content.slice(2, -2)}</p>
+        return <p key={index}>{content}</p>
+      })}
+    </div>
+  )
+}
+
 export function ProfileImportScreen({
   resume,
   setResume,
   linkedinUrl,
   setLinkedinUrl,
   onContinue,
+  error,
 }: {
   resume: string
   setResume: (value: string) => void
   linkedinUrl: string
   setLinkedinUrl: (value: string) => void
   onContinue: () => void
+  error: string | null
 }) {
   const inputRef = useRef<HTMLInputElement | null>(null)
   const [fileName, setFileName] = useState("")
   const [fileError, setFileError] = useState("")
   const [parsing, setParsing] = useState(false)
+  const [manualResume, setManualResume] = useState("")
   const ready = linkedinUrl.trim().length > 0 || resume.trim().length > 0
 
   /* PDF and DOCX are parsed properly rather than read as text - reading either
@@ -40,17 +59,18 @@ export function ProfileImportScreen({
       if (!text) {
         setFileName("")
         setFileError(
-          "No text found in that file. If it is a scanned PDF, paste the text below instead.",
+          "No text was found in that file. Upload a text-based PDF, DOCX, TXT, or MD resume.",
         )
         return
       }
+      setManualResume(text)
       setResume(text)
     } catch (error) {
       setFileName("")
       setFileError(
         error instanceof UnsupportedFileError
           ? error.message
-          : "That file could not be read. Paste the text below instead.",
+          : "That file could not be read. Upload a text-based PDF, DOCX, TXT, or MD resume.",
       )
     } finally {
       setParsing(false)
@@ -58,7 +78,7 @@ export function ProfileImportScreen({
   }
 
   return (
-    <main className="min-h-[calc(100vh-65px)] bg-[#f7f9f8] px-6 py-12">
+    <main className="min-h-screen bg-[#f7f9f8] px-6 py-12">
       <div className="mx-auto max-w-2xl">
         <div className="mt-12 max-w-xl">
           <p className="text-sm font-semibold text-[#0a66c2]">Your details</p>
@@ -111,13 +131,39 @@ export function ProfileImportScreen({
                 {fileError}
               </p>
             ) : null}
-            <textarea
-              value={resume}
-              onChange={(event) => setResume(event.target.value)}
-              rows={5}
-              placeholder="Or write or paste your resume"
-              className="w-full resize-y rounded-xl border border-neutral-200 bg-neutral-50 p-4 text-sm leading-6 outline-none focus:border-[#0a66c2]"
-            />
+            {error ? (
+              <p className="rounded-xl bg-amber-50 px-4 py-3 text-sm text-amber-900">
+                {error}
+              </p>
+            ) : null}
+            <div>
+              <label htmlFor="manual-resume" className="mb-2 block text-sm font-semibold text-neutral-950">
+                Or write your resume manually
+              </label>
+              <textarea
+                id="manual-resume"
+                value={manualResume}
+                onChange={(event) => {
+                  const value = event.target.value
+                  setManualResume(value)
+                  setResume(value)
+                }}
+                rows={7}
+                placeholder=""
+                className="w-full resize-y rounded-xl border border-neutral-200 bg-neutral-50 p-4 font-mono text-sm leading-6 outline-none focus:border-[#0a66c2]"
+              />
+              {manualResume.trim() ? (
+                <div className="mt-4">
+                  <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-neutral-500">Formatted resume</p>
+                  <MarkdownPreview value={manualResume} />
+                </div>
+              ) : null}
+            </div>
+            {resume.trim() ? (
+              <p className="rounded-xl bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-800">
+                Resume ready. Your profile details will be used for personalized roles and interview questions.
+              </p>
+            ) : null}
           </div>
 
           <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-between">

@@ -32,6 +32,15 @@ function getRecognitionCtor(): RecognitionCtor | null {
   return w.SpeechRecognition ?? w.webkitSpeechRecognition ?? null
 }
 
+function cleanTranscript(value: string) {
+  const words = value.replace(/\s+/g, " ").trim().split(" ")
+  const deduped = words.filter((word, index) => index === 0 || word.toLowerCase() !== words[index - 1]?.toLowerCase())
+  const sentence = deduped.join(" ").replace(/\bi\b/g, "I").trim()
+  if (!sentence) return ""
+  const capitalized = `${sentence.charAt(0).toUpperCase()}${sentence.slice(1)}`
+  return /[.!?]$/.test(capitalized) ? capitalized : `${capitalized}.`
+}
+
 /** Continuous dictation that appends final chunks and exposes the interim tail. */
 export function useDictation(onFinalChunk: (text: string) => void) {
   const [listening, setListening] = useState(false)
@@ -39,6 +48,7 @@ export function useDictation(onFinalChunk: (text: string) => void) {
   const [error, setError] = useState<string | null>(null)
   const ref = useRef<RecognitionLike | null>(null)
   const wanted = useRef(false)
+  const restartTimer = useRef<number | null>(null)
   const cb = useRef(onFinalChunk)
 
   // Written in an effect rather than during render, so a concurrent re-render
@@ -55,69 +65,83 @@ export function useDictation(onFinalChunk: (text: string) => void) {
 
   const stop = useCallback(() => {
     wanted.current = false
+    if (restartTimer.current !== null) window.clearTimeout(restartTimer.current)
+    restartTimer.current = null
     ref.current?.stop()
     setListening(false)
     setInterim("")
   }, [])
 
   const start = useCallback(() => {
+    if (wanted.current) return
     const Ctor = getRecognitionCtor()
-    if (!Ctor) return
+    if (!Ctor) {
+      setError("Live captions are not supported by this browser. Open the app in Chrome or Edge and allow microphone access.")
+      return
+    }
     setError(null)
+    wanted.current = true
 
-    const rec = new Ctor()
-    rec.continuous = true
-    rec.interimResults = true
-    rec.lang = "en-US"
+    const beginSession = () => {
+      if (!wanted.current) return
+      const rec = new Ctor()
+      rec.continuous = true
+      rec.interimResults = true
+      rec.lang = "en-US"
 
-    rec.onresult = (e) => {
-      let tail = ""
-      for (let i = e.resultIndex; i < e.results.length; i++) {
-        const r = e.results[i]
-        if (!r) continue
-        const text = r[0]?.transcript ?? ""
-        if (r.isFinal) cb.current(text)
-        else tail += text
+      rec.onresult = (e) => {
+        let tail = ""
+        for (let i = e.resultIndex; i < e.results.length; i++) {
+          const result = e.results[i]
+          if (!result) continue
+          const text = result[0]?.transcript ?? ""
+          if (result.isFinal) cb.current(cleanTranscript(text))
+          else tail += text
+        }
+        setError(null)
+        setInterim(tail)
       }
-      setInterim(tail)
-    }
 
-    rec.onerror = (e) => {
-      if (e.error === "not-allowed") {
-        setError("Microphone blocked. Allow mic access, or just type your answer.")
-        wanted.current = false
-        setListening(false)
-      } else if (e.error !== "no-speech" && e.error !== "aborted") {
-        setError(`Mic error: ${e.error}`)
-      }
-    }
-
-    // Chrome ends the session every few seconds of silence; restart while wanted.
-    rec.onend = () => {
-      if (wanted.current) {
-        try {
-          rec.start()
-        } catch {
+      rec.onerror = (e) => {
+        if (e.error === "not-allowed" || e.error === "service-not-allowed") {
+          setError("Microphone access is blocked. Allow microphone access in your browser, then tap the mic icon.")
+          wanted.current = false
+          setListening(false)
+        } else if (e.error === "audio-capture") {
+          setError("No microphone input is available. Check your selected microphone, then tap the mic icon.")
+          wanted.current = false
           setListening(false)
         }
-      } else {
-        setListening(false)
+        // "network", "no-speech", and "aborted" end events are recovered by
+        // creating a fresh recognition session below.
+      }
+
+      rec.onend = () => {
+        if (ref.current !== rec) return
+        setInterim("")
+        if (!wanted.current) {
+          setListening(false)
+          return
+        }
+        restartTimer.current = window.setTimeout(beginSession, 250)
+      }
+
+      ref.current = rec
+      try {
+        rec.start()
+        setListening(true)
+      } catch {
+        restartTimer.current = window.setTimeout(beginSession, 250)
       }
     }
 
-    ref.current = rec
-    wanted.current = true
-    try {
-      rec.start()
-      setListening(true)
-    } catch {
-      setError("Could not start the microphone.")
-    }
+    beginSession()
   }, [])
 
   useEffect(() => {
     return () => {
       wanted.current = false
+      if (restartTimer.current !== null) window.clearTimeout(restartTimer.current)
       ref.current?.abort()
     }
   }, [])
@@ -137,9 +161,15 @@ export function useSpeaker() {
   }, [])
 
   const speak = useCallback(
-    (text: string) => {
-      if (typeof window === "undefined" || !window.speechSynthesis) return
-      if (!enabled) return
+    (text: string, onComplete?: () => void) => {
+      if (typeof window === "undefined" || !window.speechSynthesis) {
+        onComplete?.()
+        return
+      }
+      if (!enabled) {
+        onComplete?.()
+        return
+      }
       window.speechSynthesis.cancel()
 
       const u = new SpeechSynthesisUtterance(text)
@@ -149,8 +179,14 @@ export function useSpeaker() {
         .getVoices()
         .find((v) => /en-(US|GB)/.test(v.lang) && /google|samantha|daniel/i.test(v.name))
       if (voice) u.voice = voice
-      u.onend = () => setSpeaking(false)
-      u.onerror = () => setSpeaking(false)
+      u.onend = () => {
+        setSpeaking(false)
+        onComplete?.()
+      }
+      u.onerror = () => {
+        setSpeaking(false)
+        onComplete?.()
+      }
       setSpeaking(true)
       window.speechSynthesis.speak(u)
     },

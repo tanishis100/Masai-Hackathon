@@ -1,0 +1,70 @@
+{"kind":"deck","id":"pr/7sqwcd","name":"Deck"}
+{"kind":"layout","layoutId":"c6660424-004a-4683-a0cf-7dca8e77804a","name":"Master","type":"master"}
+{"kind":"layout","layoutId":"4d359b09-0678-4421-8f8c-e70de3850405","name":"Title Slide","type":"title"}
+{"kind":"slide","id":"sl/f9iamr","slide":1,"title":"Real interview practice","textShapes":8}
+{"kind":"shape","id":"sh/pw3y1gjy","slide":1,"bbox":[0,0,540,720]}
+{"kind":"textbox","id":"sh/ovuhsb2d","slide":1,"text":"Real interview practice","textPreview":"Real interview practice","textChars":23,"textLines":1,"bbox":[56,46,190,34]}
+{"kind":"textbox","id":"sh/bylg3q1o","slide":1,"text":"Problem","textPreview":"Problem","textChars":7,"textLines":1,"bbox":[612,62,540,54]}
+{"kind":"textbox","id":"sh/axczulk3","slide":1,"text":"Generic prep hides the questions that matter","textPreview":"Generic prep hides the questions that matter","textChars":44,"textLines":1,"bbox":[612,124,570,154]}
+{"kind":"textbox","id":"sh/x03y50ju","slide":1,"text":"Candidates prepare from broad question banks while the real interview follows the role, resume claims, and unclear evidence in their profile.","textPreview":"Candidates prepare from broad question banks while the real interview follows the role, resume claims, and unclear evidence in their prof...","textChars":141,"textLines":1,"bbox":[616,306,520,84]}
+{"kind":"shape","id":"sh/czuhwvi9","slide":1,"bbox":[616,428,500,150]}
+{"kind":"textbox","id":"sh/r21grm1k","slide":1,"text":"Common prep misses three things","textPreview":"Common prep misses three things","textChars":31,"textLines":1,"bbox":[648,454,420,28]}
+{"kind":"textbox","id":"sh/q18fihkz","slide":1,"text":"Risky resume claims\nRole gaps hidden inside the JD\nFollow-up questions that test ownership","textPreview":"Risky resume claims | Role gaps hidden inside the JD | Follow-up questions that test ownership","textChars":90,"textLines":3,"bbox":[648,494,420,66]}
+{"kind":"textbox","id":"sh/8bi9kbid","slide":1,"text":"Pressure","textPreview":"Pressure","textChars":8,"textLines":1,"bbox":[56,658,180,28]}
+{"kind":"textbox","id":"sh/9crqdgzy","slide":1,"text":"01","textPreview":"01","textChars":2,"textLines":1,"bbox":[1164,656,60,30]}
+{"kind":"image","id":"im/ryd436dk","slide":1,"name":"","alt":"Candidate and interviewer shaking hands","bbox":[0,0,540,720]}
+{"kind":"notes","id":"nt/f9iamr","slide":1,"text":"Sources: README.md problem statement and app flow; apps/web/src/components/setup-screen.tsx; apps/web/src/lib/prompts.ts. Visual source: apps/web/public/welcome-interview-v2.png."}
+{"kind":"slide","id":"sl/u0nhwy","slide":2,"title":"Solution","textShapes":19}
+{"kind":"shape","id":"sh/0bupsjmx","slide":2,"bbox":[786,0,494,720]}
+{"kind":"textbox","id":"sh/1cn6lo3i","slide":2,"text":"Solution","textPreview":"Solution","textChars":8,"textLines":1,"bbox":[72,56,260,48]}
+{"kind":"textbox","id":"sh/2dw7ut43","slide":2,"text":"Pressure turns a target role into a realistic mock interview","textPreview":"Pressure turns a target role into a realistic mock interview","textChars":60,"textLines":1,"bbox":[72,118,650,132]}
+{"kind":"textbox","id":"sh/ne5onelo","slide":2,"text":"The product reads the job description and candidate profile, maps likely weak spots, asks tailored questions aloud, then grades the answers against the same role.","textPreview":"The product reads the job description and candidate profile, maps likely weak spots, asks tailored questions aloud, then grades the answe...","textChars":162,"textLines":1,"bbox":[76,275,592,76]}
+{"kind":"shape","id":"sh/ofepwjmt","slide":2,"bbox":[76,395,282,116]}
+{"kind":"textbox","id":"sh/pgn6po3e","slide":2,"text":"01","textPreview":"01","textChars":2,"textLines":1,"bbox":[94,413,42,36]}
+{"kind":"textbox","id":"sh/ihsnip4j","slide":2,"text":"Profile and JD","textPreview":"Profile and JD","textChars":14,"textLines":1,"bbox":[146,413,186,28]}
+{"kind":"textbox","id":"sh/3i1obul4","slide":2,"text":"Candidate shares the exact role and resume context.","textPreview":"Candidate shares the exact role and resume context.","textChars":51,"textLines":1,"bbox":[146,446,186,44]}
+{"kind":"shape","id":"sh/72lsb61w","slide":2,"bbox":[384,395,300,116]}
+{"kind":"textbox","id":"sh/61cb21kb","slide":2,"text":"02","textPreview":"02","textChars":2,"textLines":1,"bbox":[402,413,42,36]}
+{"kind":"textbox","id":"sh/to3adgj2","slide":2,"text":"Risk map","textPreview":"Risk map","textChars":8,"textLines":1,"bbox":[454,413,204,28]}
+{"kind":"textbox","id":"sh/83ut4b2h","slide":2,"text":"The app surfaces claims and gaps before the call begins.","textPreview":"The app surfaces claims and gaps before the call begins.","textChars":56,"textLines":1,"bbox":[454,446,204,44]}
+{"kind":"shape","id":"sh/jy1s7610","slide":2,"bbox":[76,530,282,116]}
+{"kind":"textbox","id":"sh/yxsry1kf","slide":2,"text":"03","textPreview":"03","textChars":2,"textLines":1,"bbox":[94,548,42,36]}
+{"kind":"textbox","id":"sh/l03a9wjq","slide":2,"text":"Phone-style practice","textPreview":"Phone-style practice","textChars":20,"textLines":1,"bbox":[146,548,186,28]}
+{"kind":"textbox","id":"sh/kzat0b25","slide":2,"text":"Questions are spoken aloud and answered by voice or typing.","textPreview":"Questions are spoken aloud and answered by voice or typing.","textChars":59,"textLines":1,"bbox":[146,581,186,44]}
+{"kind":"shape","id":"sh/bu1s3mlo","slide":2,"bbox":[384,530,300,116]}
+{"kind":"textbox","id":"sh/atsruhk3","slide":2,"text":"04","textPreview":"04","textChars":2,"textLines":1,"bbox":[402,548,42,36]}
+{"kind":"textbox","id":"sh/e58b6h4b","slide":2,"text":"Feedback and cheat sheet","textPreview":"Feedback and cheat sheet","textChars":24,"textLines":1,"bbox":[454,548,204,28]}
+{"kind":"textbox","id":"sh/zqhcfm5g","slide":2,"text":"Scores, missed points, and revision links focus the next pass.","textPreview":"Scores, missed points, and revision links focus the next pass.","textChars":62,"textLines":1,"bbox":[454,581,204,44]}
+{"kind":"textbox","id":"sh/0rqt8rm1","slide":2,"text":"Likely interviewer probe","textPreview":"Likely interviewer probe","textChars":24,"textLines":1,"bbox":[856,520,214,34]}
+{"kind":"shape","id":"sh/1szuhwnm","slide":2,"bbox":[774,574,420,84]}
+{"kind":"textbox","id":"sh/mtsba147","slide":2,"text":"\"Your LinkedIn says you led the launch. What did you personally own?\"","textPreview":"\"Your LinkedIn says you led the launch. What did you personally own?\"","textChars":69,"textLines":1,"bbox":[804,596,360,42]}
+{"kind":"textbox","id":"sh/nu1cj65s","slide":2,"text":"Pressure","textPreview":"Pressure","textChars":8,"textLines":1,"bbox":[56,658,180,28]}
+{"kind":"textbox","id":"sh/ovatcrmd","slide":2,"text":"02","textPreview":"02","textChars":2,"textLines":1,"bbox":[1164,656,60,30]}
+{"kind":"image","id":"im/6twz210j","slide":2,"name":"","geometry":"roundRect","alt":"Interviewer profile portrait","bbox":[820,86,328,488]}
+{"kind":"notes","id":"nt/u0nhwy","slide":2,"text":"Sources: README.md How it works section; apps/web/src/components/setup-screen.tsx; apps/web/src/components/risk-map-screen.tsx; apps/web/src/components/interview-screen.tsx; apps/web/src/components/feedback-screen.tsx. Visual source: apps/web/public/interviewer-sana.png."}
+{"kind":"slide","id":"sl/2xt9o7","slide":3,"title":"System Logic","textShapes":17}
+{"kind":"textbox","id":"sh/8rmx0zyp","slide":3,"text":"System Logic","textPreview":"System Logic","textChars":12,"textLines":1,"bbox":[456,56,360,48]}
+{"kind":"textbox","id":"sh/9svet4za","slide":3,"text":"Client-side Gemini calls create each interview artifact","textPreview":"Client-side Gemini calls create each interview artifact","textChars":55,"textLines":1,"bbox":[456,116,650,108]}
+{"kind":"textbox","id":"sh/ut4f29gv","slide":3,"text":"Pressure keeps user data in the browser. The Gemini key sits in localStorage, and structured requests go directly from the client to Google’s Generative Language API.","textPreview":"Pressure keeps user data in the browser. The Gemini key sits in localStorage, and structured requests go directly from the client to Goog...","textChars":166,"textLines":1,"bbox":[460,242,610,74]}
+{"kind":"shape","id":"sh/vudwvehg","slide":3,"bbox":[456,338,650,44]}
+{"kind":"textbox","id":"sh/wvmx4jy1","slide":3,"text":"Input","textPreview":"Input","textChars":5,"textLines":1,"bbox":[478,348,130,24]}
+{"kind":"textbox","id":"sh/hgfexozm","slide":3,"text":"Job description, resume, level, mode, and round count","textPreview":"Job description, resume, level, mode, and round count","textChars":53,"textLines":1,"bbox":[618,348,458,24]}
+{"kind":"shape","id":"sh/axkvqpgr","slide":3,"bbox":[456,393,650,44]}
+{"kind":"textbox","id":"sh/bytwjahc","slide":3,"text":"Risk map","textPreview":"Risk map","textChars":8,"textLines":1,"bbox":[478,403,130,24]}
+{"kind":"textbox","id":"sh/v294r6xk","slide":3,"text":"roleMatch, strongestSignals, three risks, and a short plan","textPreview":"roleMatch, strongestSignals, three risks, and a short plan","textChars":58,"textLines":1,"bbox":[618,403,458,24]}
+{"kind":"shape","id":"sh/u1gni1gz","slide":3,"bbox":[456,448,650,44]}
+{"kind":"textbox","id":"sh/hormtgfa","slide":3,"text":"Interview","textPreview":"Interview","textChars":9,"textLines":1,"bbox":[478,458,130,24]}
+{"kind":"textbox","id":"sh/gni5kbyp","slide":3,"text":"Seven tailored questions with hidden grading targets","textPreview":"Seven tailored questions with hidden grading targets","textChars":52,"textLines":1,"bbox":[618,458,458,24]}
+{"kind":"shape","id":"sh/7yp4nmx8","slide":3,"bbox":[456,503,650,44]}
+{"kind":"textbox","id":"sh/6xg3e1gn","slide":3,"text":"Feedback","textPreview":"Feedback","textChars":8,"textLines":1,"bbox":[478,513,130,24]}
+{"kind":"textbox","id":"sh/t07mpwfe","slide":3,"text":"Overall score, four dimensions, per-question verdicts, and missed points","textPreview":"Overall score, four dimensions, per-question verdicts, and missed points","textChars":72,"textLines":1,"bbox":[618,513,458,24]}
+{"kind":"shape","id":"sh/8zylgryt","slide":3,"bbox":[456,558,650,44]}
+{"kind":"textbox","id":"sh/ju54jmxc","slide":3,"text":"Cheat sheet","textPreview":"Cheat sheet","textChars":11,"textLines":1,"bbox":[478,568,130,24]}
+{"kind":"textbox","id":"sh/ytw3ahgr","slide":3,"text":"Revision notes and stable reference links from weakest answers","textPreview":"Revision notes and stable reference links from weakest answers","textChars":62,"textLines":1,"bbox":[618,568,458,24]}
+{"kind":"shape","id":"sh/mpwn2h0j","slide":3,"bbox":[118,518,248,74]}
+{"kind":"textbox","id":"sh/nq54vm14","slide":3,"text":"No backend secrets","textPreview":"No backend secrets","textChars":18,"textLines":1,"bbox":[144,538,196,28]}
+{"kind":"textbox","id":"sh/ore54rip","slide":3,"text":"The repository has no API routes.","textPreview":"The repository has no API routes.","textChars":33,"textLines":1,"bbox":[144,565,196,20]}
+{"kind":"textbox","id":"sh/9sn6xwja","slide":3,"text":"Pressure","textPreview":"Pressure","textChars":8,"textLines":1,"bbox":[56,658,180,28]}
+{"kind":"textbox","id":"sh/atwn6h0f","slide":3,"text":"03","textPreview":"03","textChars":2,"textLines":1,"bbox":[1164,656,60,30]}
+{"kind":"image","id":"im/etsb690r","slide":3,"name":"","geometry":"roundRect","alt":"Interviewer portrait","bbox":[84,126,316,456]}
+{"kind":"notes","id":"nt/2xt9o7","slide":3,"text":"Sources: README.md No environment variables, no server section; apps/web/src/app/page.tsx; apps/web/src/lib/prompts.ts; apps/web/src/lib/gemini.ts. Visual source: apps/web/public/interviewer-profile.png."}

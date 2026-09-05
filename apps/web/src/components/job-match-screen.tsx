@@ -20,89 +20,80 @@ export type JobMatch = {
   jd: string
 }
 
-const JOBS: JobMatch[] = [
-  {
-    company: "Nimbus Analytics",
-    logo: "N",
-    logoClass: "bg-[#0a66c2]",
-    role: "Frontend Engineer",
-    location: "Bengaluru · Hybrid",
-    match: 94,
-    interviewer: "Aarav Mehta",
-    interviewerRole: "Hiring Manager",
-    email: "aarav.mehta@nimbus.io",
-    technical: "Sana Kapoor",
-    technicalRole: "Technical Lead",
-    technicalEmail: "sana.kapoor@nimbus.io",
-    jd: "Build real-time dashboards for logistics teams. Own the React and TypeScript surface, improve rendering performance, and partner with backend on live telemetry. You will work closely with design and product to ship clear, reliable tools for operations teams.",
-  },
-  {
-    company: "Vercel",
-    logo: "▲",
-    logoClass: "bg-neutral-950",
-    role: "Product Engineer",
-    location: "Remote · India",
-    match: 86,
-    interviewer: "Maya Shah",
-    interviewerRole: "Product Engineering Manager",
-    email: "maya.shah@vercel.com",
-    technical: "Ethan Cole",
-    technicalRole: "Staff Engineer",
-    technicalEmail: "ethan.cole@vercel.com",
-    jd: "Create fast, thoughtful workflows for developers using React, Next.js, and modern web platform primitives. You will turn complex infrastructure into simple product experiences and collaborate across engineering and design.",
-  },
-  {
-    company: "Atlassian",
-    logo: "A",
-    logoClass: "bg-[#1868db]",
-    role: "Senior Frontend Engineer",
-    location: "Bengaluru · Hybrid",
-    match: 79,
-    interviewer: "Riya Menon",
-    interviewerRole: "Engineering Manager",
-    email: "riya.menon@atlassian.com",
-    technical: "Leo Martin",
-    technicalRole: "Principal Engineer",
-    technicalEmail: "leo.martin@atlassian.com",
-    jd: "Design collaborative product experiences at scale and work across product, design, and platform teams. The role combines frontend architecture, accessibility, performance, and strong customer empathy.",
-  },
-]
+const BRAND_LOGOS: Record<string, string> = {
+  microsoft: "/brand-microsoft.svg",
+  apple: "/brand-apple.svg",
+  google: "/brand-google.svg",
+  amazon: "/brand-amazon.svg",
+  adobe: "/brand-adobe.svg",
+}
+
+function CompanyMark({ job, size = 40 }: { job: JobMatch; size?: number }) {
+  const brand = BRAND_LOGOS[job.company.toLowerCase()]
+  if (brand) {
+    return <Image src={brand} alt={`${job.company} logo`} width={size} height={size} className="h-full w-full object-contain p-1.5" />
+  }
+
+  return <span className={`flex h-full w-full items-center justify-center rounded-lg text-sm font-bold text-white ${job.logoClass}`}>{job.logo}</span>
+}
 
 export function JobMatchScreen({
+  jobs,
   onJoin,
   onBack,
 }: {
+  jobs: JobMatch[]
   onJoin: (job: JobMatch) => void
   onBack: () => void
 }) {
   const [selected, setSelected] = useState(0)
-  const job = JOBS[selected]!
+  const job = jobs[selected]
+
+  if (!job) {
+    return (
+      <main className="min-h-screen bg-[#f7f9f8] px-6 py-10">
+        <div className="mx-auto max-w-2xl">
+          <p className="text-sm font-semibold text-amber-600">No matches yet</p>
+          <h1 className="mt-3 text-4xl font-black tracking-tight text-neutral-950 sm:text-5xl">
+            Add more profile detail.
+          </h1>
+          <p className="mt-4 text-lg leading-8 text-neutral-600">
+            Gemini needs resume text or a richer profile to produce personalized role
+            matches.
+          </p>
+          <Button onClick={onBack} className="mt-7 bg-[#0a66c2] text-white">
+            Edit profile
+          </Button>
+        </div>
+      </main>
+    )
+  }
 
   return (
-    <main className="min-h-[calc(100vh-65px)] bg-[#f7f9f8] px-6 py-10">
+    <main className="min-h-screen bg-[#f7f9f8] px-6 py-10">
       <div className="mx-auto max-w-6xl">
         <p className="text-sm font-semibold text-emerald-600">Profile scan complete</p>
         <h1 className="mt-3 text-4xl font-black tracking-tight text-neutral-950 sm:text-5xl">
           Roles worth your time.
         </h1>
         <p className="mt-4 max-w-2xl text-lg leading-8 text-neutral-600">
-          We compared your experience with current roles and found matches where your
-          profile has the strongest signal.
+          We matched the role paths below to the skills and experience in your uploaded
+          resume.
         </p>
 
         <div className="mt-9 grid items-start gap-6 lg:grid-cols-[0.86fr_1.14fr]">
           <section className="space-y-4 lg:max-h-[calc(100vh-180px)] lg:overflow-y-auto lg:pr-3">
             <div className="flex items-center justify-between">
               <p className="text-xs font-bold uppercase tracking-wider text-neutral-400">
-                Matching jobs
+                Personalized job recommendations
               </p>
-              <span className="text-xs text-neutral-500">{JOBS.length} found</span>
+              <span className="text-xs text-neutral-500">{jobs.length} found</span>
             </div>
-            {JOBS.map((item, index) => {
+            {jobs.map((item, index) => {
               const active = selected === index
               return (
                 <button
-                  key={item.company}
+                  key={`${item.company}-${item.role}`}
                   onClick={() => setSelected(index)}
                   className={`block w-full text-left transition-opacity ${active ? "opacity-100" : "opacity-40 hover:opacity-75"}`}
                 >
@@ -110,11 +101,7 @@ export function JobMatchScreen({
                     className={`border bg-white p-5 shadow-sm ${active ? "border-neutral-950 shadow-md" : "border-neutral-200"}`}
                   >
                     <div className="flex items-start gap-3">
-                      <div
-                        className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-sm font-bold text-white ${item.logoClass}`}
-                      >
-                        {item.logo}
-                      </div>
+                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-white shadow-sm"><CompanyMark job={item} /></div>
                       <div className="min-w-0 flex-1">
                         <div className="flex items-start justify-between gap-3">
                           <div>
@@ -154,16 +141,9 @@ export function JobMatchScreen({
 
           <section className="border border-neutral-200 bg-white shadow-sm lg:sticky lg:top-24">
             <div className="flex items-center gap-4 border-b border-neutral-100 p-6 sm:p-8">
-              <div
-                className={`flex h-14 w-14 items-center justify-center rounded-xl text-xl font-bold text-white ${job.logoClass}`}
-              >
-                {job.logo}
-              </div>
+              <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-white shadow-sm"><CompanyMark job={job} size={56} /></div>
               <div>
-                <p className="text-xs font-bold uppercase tracking-wider text-neutral-400">
-                  Selected company
-                </p>
-                <h2 className="mt-1 text-2xl font-bold text-neutral-950">
+                <h2 className="text-2xl font-bold text-neutral-950">
                   {job.company}
                 </h2>
                 <p className="text-sm text-neutral-500">
@@ -193,7 +173,7 @@ export function JobMatchScreen({
                   <div>
                     <p className="font-semibold text-neutral-950">{job.interviewer}</p>
                     <p className="text-sm text-neutral-500">{job.interviewerRole}</p>
-                    <p className="mt-1 break-all text-xs text-neutral-400">{job.email}</p>
+                    <p className="mt-1 break-all text-xs text-neutral-500">{job.email}</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
@@ -209,7 +189,7 @@ export function JobMatchScreen({
                   <div>
                     <p className="font-semibold text-neutral-950">{job.technical}</p>
                     <p className="text-sm text-neutral-500">{job.technicalRole}</p>
-                    <p className="mt-1 break-all text-xs text-neutral-400">
+                    <p className="mt-1 break-all text-xs text-neutral-500">
                       {job.technicalEmail}
                     </p>
                   </div>

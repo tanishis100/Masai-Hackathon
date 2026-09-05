@@ -83,6 +83,104 @@ export const RISK_MAP_SCHEMA: Schema = {
   required: ["roleMatch", "strongestSignals", "risks", "plan"],
 }
 
+export const JOB_MATCH_SCHEMA: Schema = {
+  type: "OBJECT",
+  properties: {
+    jobs: {
+      type: "ARRAY",
+      items: {
+        type: "OBJECT",
+        properties: {
+          company: { type: "STRING" },
+          logo: {
+            type: "STRING",
+            description: "One uppercase letter or short symbol for the company badge",
+          },
+          logoClass: {
+            type: "STRING",
+            enum: [
+              "bg-[#0a66c2]",
+              "bg-neutral-950",
+              "bg-[#1868db]",
+              "bg-emerald-700",
+              "bg-rose-700",
+              "bg-cyan-700",
+            ],
+          },
+          role: { type: "STRING" },
+          location: { type: "STRING" },
+          match: { type: "NUMBER", description: "0-100 fit score" },
+          interviewer: {
+            type: "STRING",
+            description: "Likely hiring manager title, not a fabricated person name",
+          },
+          interviewerRole: { type: "STRING" },
+          email: {
+            type: "STRING",
+            description: "Company careers URL or hiring channel, not a fabricated email",
+          },
+          technical: {
+            type: "STRING",
+            description: "Likely technical interview title, not a fabricated person name",
+          },
+          technicalRole: { type: "STRING" },
+          technicalEmail: {
+            type: "STRING",
+            description: "Company engineering/careers URL or hiring channel",
+          },
+          jd: {
+            type: "STRING",
+            description: "Concise role summary and why it matches the resume",
+          },
+        },
+        required: [
+          "company",
+          "logo",
+          "logoClass",
+          "role",
+          "location",
+          "match",
+          "interviewer",
+          "interviewerRole",
+          "email",
+          "technical",
+          "technicalRole",
+          "technicalEmail",
+          "jd",
+        ],
+      },
+    },
+  },
+  required: ["jobs"],
+}
+
+export function jobMatchPrompt(input: {
+  resume: string
+  linkedinUrl: string
+  level: ExperienceLevel
+}) {
+  return `Create personalized interview-prep job matches from the candidate profile.
+
+CANDIDATE LEVEL: ${input.level} — ${LEVEL_BRIEF[input.level]}
+LINKEDIN URL, IF PROVIDED: ${input.linkedinUrl || "(none)"}
+
+=== CANDIDATE PROFILE / RESUME TEXT ===
+${input.resume || "(none pasted)"}
+
+Rules:
+- Return exactly 5 job matches.
+- Determine the candidate's primary discipline from the resume before selecting roles. A developer must receive developer roles; a product/UX designer must receive design roles; a data candidate must receive data roles. Never mix unrelated disciplines just to fill the list.
+- Use the candidate's strongest stated tools and experience to choose the role family and seniority.
+- Base every match on skills, seniority, domain signals, projects, and location hints in the profile.
+- Prefer recognizable companies and realistic role families for the profile, but do not claim you verified a live opening.
+- Do not invent personal names, personal email addresses, salary, requisition IDs, or exact posting dates.
+- Put likely panel roles in interviewer/technical, e.g. "Hiring Manager" and "Frontend Tech Lead".
+- Put a stable careers page or hiring channel in email/technicalEmail, e.g. "careers.google.com".
+- jd must explain the role and the resume evidence behind the match in 1-2 product-card sentences.
+- Sort jobs by match descending.
+- Match scores should be realistic; avoid putting every role above 90 unless the fit is unusually exact.`
+}
+
 export function riskMapPrompt(setup: InterviewSetup) {
   return `Create a pre-interview risk map before a mock interview.
 
@@ -105,7 +203,7 @@ Rules:
 }
 
 export function questionPrompt(setup: InterviewSetup, count: number) {
-  return `Design exactly ${count} questions for an adaptive phone screen. The interview must contain exactly 7 questions.
+  return `Design exactly ${count} opening question for an adaptive phone screen.
 
 CANDIDATE LEVEL: ${setup.level} — ${LEVEL_BRIEF[setup.level]}
 INTERVIEW MODE: ${setup.mode}
@@ -117,17 +215,51 @@ ${setup.jobDescription}
 ${setup.resume}
 
 Rules:
-- Question 1 is "intro": a warm opener that names something specific from their resume.
-- Questions 2-7 are purposeful follow-ups. Each should go one layer deeper into the candidate's previous answer, ownership, evidence, trade-offs, or a claim that needs verification.
-- Build a coherent conversation arc: opener, experience proof, technical depth, trade-off or system design, behavioural pressure test, contradiction check, and final role-fit question.
-- Cover the JD's actual named technologies and responsibilities, weighted by how central they are.
-- At least one question must dig into a specific project or claim on the resume by name.
-- In pressure mode, at least half the questions must deliberately stress-test weak evidence, unclear ownership, missing metrics, or a risky resume claim.
-- ${setup.level === "fresher" ? "Skip system design; favour fundamentals and project depth." : "Include one system-design or architecture question scaled to their level."}
-- Include one behavioural question grounded in the JD's team context.
-- Each question is one or two sentences, conversational, as if spoken on a call.
+- The opening question is "intro": a warm opener that names something specific from their resume.
+- Use kind "intro", "behavioural", or "role-fit" for a hiring-manager question; use "technical" or "system-design" for a technical-panel question.
+- Cover a concrete project, achievement, or claim from the resume and connect it to a named JD requirement.
+- The question must be one short sentence, ideally 8-16 words. Do not ask a second question.
 - pressureTarget names the exact claim, gap, or competency being tested.
 - No numbering, no preamble in the question text.`
+}
+
+export function followUpQuestionPrompt(
+  setup: InterviewSetup,
+  questions: Question[],
+  answers: Answer[],
+  nextNumber: number,
+) {
+  const transcript = questions
+    .map((question, index) => {
+      const answer = answers.find((item) => item.questionId === question.id)
+      return `Q${index + 1}: ${question.text}\nA${index + 1}: ${answer?.text.trim() || "(skipped)"}`
+    })
+    .join("\n\n")
+
+  return `Ask exactly one adaptive follow-up question: question ${nextNumber} of 5.
+
+CANDIDATE LEVEL: ${setup.level} — ${LEVEL_BRIEF[setup.level]}
+INTERVIEW MODE: ${setup.mode}
+
+=== JOB DESCRIPTION ===
+${setup.jobDescription}
+
+=== CANDIDATE RESUME ===
+${setup.resume}
+
+=== INTERVIEW SO FAR ===
+${transcript}
+
+Rules:
+- Ask one new, natural question that directly follows the candidate's latest answer. Do not repeat a question or ask a generic list question.
+- Probe an unsupported claim, metric, ownership boundary, technical decision, trade-off, or JD requirement revealed in the answer.
+- Keep a coherent five-question arc: experience proof, technical depth, decision or trade-off, behavioural pressure test, and role fit.
+- Use kind "intro", "behavioural", or "role-fit" for a hiring-manager question; use "technical" or "system-design" for a technical-panel question.
+- ${setup.mode === "pressure" ? "Be direct about vague evidence or unclear ownership." : "Be challenging but constructive."}
+- ${setup.level === "fresher" ? "Favor fundamentals and project depth over production leadership claims." : "Scale system and ownership depth to the candidate's level."}
+- The question must be one short sentence, ideally 8-16 words. Do not ask a second question.
+- pressureTarget names the exact claim, gap, or competency being tested.
+- No numbering, preamble, feedback, or grading commentary.`
 }
 
 export const FEEDBACK_SCHEMA: Schema = {

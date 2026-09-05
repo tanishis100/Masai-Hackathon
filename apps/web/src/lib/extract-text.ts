@@ -26,6 +26,16 @@ function squash(line: string) {
   return line.replace(/\s+/g, " ").trim()
 }
 
+function markdownLine(line: string, index: number, bold: boolean) {
+  const value = squash(line).replace(/^[•▪◦●]\s*/, "- ")
+  if (!value) return ""
+  if (/^(experience|work experience|education|skills|projects|certifications|summary|profile|contact)$/i.test(value)) {
+    return `## ${value}`
+  }
+  if (index === 0) return `# ${value}`
+  return bold && value.length < 100 ? `**${value}**` : value
+}
+
 async function fromPdf(file: File): Promise<string> {
   const pdfjs = await import("pdfjs-dist")
 
@@ -46,19 +56,23 @@ async function fromPdf(file: File): Promise<string> {
     const content = await page.getTextContent()
     // Items carry no line breaks, so rebuild them from the y coordinate.
     let lastY: number | null = null
-    let line = ""
+    let parts: { text: string; bold: boolean }[] = []
     const lines: string[] = []
     for (const item of content.items) {
       if (!("str" in item)) continue
       const y = item.transform?.[5] ?? null
       if (lastY !== null && y !== null && Math.abs(y - lastY) > 2) {
-        lines.push(squash(line))
-        line = ""
+        const text = parts.map((part) => part.text).join(" ")
+        lines.push(markdownLine(text, lines.length, parts.length > 0 && parts.every((part) => part.bold)))
+        parts = []
       }
-      line += item.str + (item.hasEOL ? "\n" : " ")
+      parts.push({ text: item.str, bold: /bold|black|semibold/i.test(item.fontName ?? "") })
       lastY = y
     }
-    if (line.trim()) lines.push(squash(line))
+    if (parts.length) {
+      const text = parts.map((part) => part.text).join(" ")
+      lines.push(markdownLine(text, lines.length, parts.every((part) => part.bold)))
+    }
     pages.push(lines.filter(Boolean).join("\n"))
   }
 
@@ -72,10 +86,20 @@ async function fromPdf(file: File): Promise<string> {
 
 async function fromDocx(file: File): Promise<string> {
   const mammoth = await import("mammoth")
-  const { value } = await mammoth.extractRawText({
+  const { value } = await mammoth.convertToHtml({
     arrayBuffer: await file.arrayBuffer(),
   })
-  return value.replace(/\n{3,}/g, "\n\n").trim()
+  const document = new DOMParser().parseFromString(value, "text/html")
+  const lines: string[] = []
+  for (const element of Array.from(document.body.children)) {
+    const text = squash(element.textContent ?? "")
+    if (!text) continue
+    if (/^H[1-6]$/.test(element.tagName)) lines.push(`## ${text}`)
+    else if (element.tagName === "LI") lines.push(`- ${text}`)
+    else if (element.querySelector("strong, b")) lines.push(`**${text}**`)
+    else lines.push(text)
+  }
+  return lines.join("\n\n").replace(/\n{3,}/g, "\n\n").trim()
 }
 
 function fromPlainText(file: File): Promise<string> {

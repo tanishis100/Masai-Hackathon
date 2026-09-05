@@ -1,31 +1,29 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useState } from "react"
 
 import { CheatSheetScreen } from "@/components/cheatsheet-screen"
 import { FeedbackScreen } from "@/components/feedback-screen"
 import { InterviewScreen } from "@/components/interview-screen"
-import { CallScreen } from "@/components/call-screen"
 import { JobMatchScreen, type JobMatch } from "@/components/job-match-screen"
 import { ProfileImportScreen } from "@/components/profile-import-screen"
-import { RiskMapScreen } from "@/components/risk-map-screen"
 import { SettingsDialog } from "@/components/settings-dialog"
 import { SetupScreen } from "@/components/setup-screen"
 import { Thinking } from "@/components/thinking"
 import { useSettings } from "@/hooks/use-settings"
-import { generateJSON } from "@/lib/gemini"
+import { GeminiError, generateJSON } from "@/lib/gemini"
 import {
   CHEATSHEET_SCHEMA,
   FEEDBACK_SCHEMA,
   INTERVIEWER_SYSTEM,
+  JOB_MATCH_SCHEMA,
   QUESTION_SCHEMA,
-  RISK_MAP_SCHEMA,
   cheatSheetPrompt,
   feedbackPrompt,
+  followUpQuestionPrompt,
+  jobMatchPrompt,
   questionPrompt,
-  riskMapPrompt,
 } from "@/lib/prompts"
-import { draftStore } from "@/lib/storage"
 import type {
   Answer,
   CheatSheet,
@@ -34,12 +32,127 @@ import type {
   Feedback,
   InterviewSetup,
   Question,
-  RiskMap,
   Stage,
 } from "@/lib/types"
 
+function inferredRole(resume: string) {
+  if (/react|next\.js|typescript|javascript|frontend|front-end|angular|vue/i.test(resume)) return "Frontend Engineer"
+  if (/backend|back-end|node\.js|java|golang|django|api/i.test(resume)) return "Backend Engineer"
+  if (/data analyst|data science|tableau|power bi|\bsql\b|pandas/i.test(resume)) return "Data Analyst"
+  if (/figma|user research|wireframe|product design|ux design|ui design/i.test(resume)) return "Product Designer"
+  return "Frontend Engineer"
+}
+
+function resumeSignals(resume: string) {
+  const patterns = [
+    ["React", /\breact\b/i],
+    ["TypeScript", /\btypescript\b/i],
+    ["Next.js", /\bnext\.?js\b/i],
+    ["JavaScript", /\bjavascript\b/i],
+    ["Node.js", /\bnode\.?js\b/i],
+    ["Python", /\bpython\b/i],
+    ["SQL", /\bsql\b/i],
+    ["Figma", /\bfigma\b/i],
+    ["User research", /user research/i],
+    ["Tableau", /\btableau\b/i],
+    ["Power BI", /power\s*bi/i],
+    ["AWS", /\baws\b/i],
+    ["Java", /\bjava\b/i],
+  ] as const
+
+  return patterns.filter(([, pattern]) => pattern.test(resume)).map(([skill]) => skill).slice(0, 4)
+}
+
+function fallbackRoleTitles(role: string) {
+  if (role === "Product Designer") return ["Product Designer", "UX Designer", "UI Designer", "Design Systems Designer", "Product Design Specialist"]
+  if (role === "Data Analyst") return ["Data Analyst", "Product Analyst", "Business Intelligence Analyst", "Analytics Specialist", "Data Insights Analyst"]
+  if (role === "Backend Engineer") return ["Backend Engineer", "API Engineer", "Platform Engineer", "Node.js Developer", "Software Engineer"]
+  return ["Frontend Engineer", "React Developer", "UI Engineer", "Product Engineer", "Web Engineer"]
+}
+
+function fallbackCompanies() {
+  return ["Microsoft", "Apple", "Google", "Amazon", "Adobe"]
+}
+
+function demoDomain(company: string) {
+  return `${company.toLowerCase().replace(/[^a-z0-9]+/g, "")}.example`
+}
+
+function candidateName(resume: string) {
+  const ignored = /^(resume|curriculum vitae|experience|work experience|skills|education|profile|summary|contact|projects|certifications)$/i
+  const nonName = /\b(engineer|developer|designer|analyst|manager|linkedin|github|portfolio|email|phone)\b/i
+
+  for (const rawLine of resume.split("\n").slice(0, 12)) {
+    const line = rawLine
+      .replace(/^#{1,6}\s*/, "")
+      .replace(/^\*{1,2}|\*{1,2}$/g, "")
+      .replace(/^[-•]\s*/, "")
+      .trim()
+    const name = line.split(/[|—–]/)[0]?.trim() ?? ""
+    const words = name.split(/\s+/).filter(Boolean)
+    const looksLikeName = words.length >= 1 && words.length <= 4 && words.every((word) => /^[A-Za-z][A-Za-z.'-]*$/.test(word))
+
+    if (looksLikeName && !ignored.test(name) && !nonName.test(name)) return name
+  }
+
+  return "Candidate"
+}
+
+function fallbackJobs(resume: string): JobMatch[] {
+  const role = inferredRole(resume)
+  const signals = resumeSignals(resume)
+  const signalText = signals.length ? signals.join(", ") : "your listed experience"
+  const companies = fallbackCompanies()
+  return fallbackRoleTitles(role).map((title, index) => ({
+    company: companies[index]!,
+    logo: companies[index]!.slice(0, 1),
+    logoClass: ["bg-[#0a66c2]", "bg-neutral-950", "bg-[#1868db]", "bg-emerald-700", "bg-rose-700"][index]!,
+    role: title,
+    location: "Remote · Demo recommendation",
+    match: 92 - index * 3,
+    interviewer: ["Avery Morgan", "Priya Shah", "Noah Williams", "Maya Chen", "Elena Garcia"][index]!,
+    interviewerRole: "Hiring Manager",
+    email: `hiring@${demoDomain(companies[index]!)}`,
+    technical: ["Jordan Lee", "Sam Patel", "Taylor Kim", "Riley Brooks", "Casey Rivera"][index]!,
+    technicalRole: `${title} Technical Lead`,
+    technicalEmail: `engineering@${demoDomain(companies[index]!)}`,
+    jd: `Your resume highlights ${signalText}. This ${title} path is tailored to those strengths and will use them in the interview.`,
+  }))
+}
+
+function fallbackQuestion(setup: InterviewSetup, number: number): Question {
+  const role = setup.roleTitle || inferredRole(setup.resume)
+  const prompts = [
+    `Which resume project best prepares you for this ${role} role?`,
+    "What was your hardest decision on that project?",
+    "How would you redesign it if usage grew tenfold?",
+    "Describe one disagreement and how you resolved it.",
+    `Why is this ${role} role your next step?`,
+  ]
+  const kinds: Question["kind"][] = ["intro", "technical", "system-design", "behavioural", "role-fit"]
+  return { id: `q${number}`, kind: kinds[number - 1]!, text: prompts[number - 1]!, lookingFor: "Specific ownership, evidence, trade-offs, and clear communication.", pressureTarget: "Depth of experience and role fit" }
+}
+
+function fallbackFeedback(questions: Question[], answers: Answer[]): Feedback {
+  const answered = answers.filter((answer) => answer.text.trim()).length
+  const overall = Math.round((answered / Math.max(questions.length, 1)) * 70 + 20)
+  return {
+    overall,
+    headline: "Your practice report is ready.",
+    summary: "This practice report is based on the answers captured in your interview. Revisit the shortest answers first and add concrete ownership, evidence, and outcomes.",
+    dimensions: ["Technical depth", "Communication", "Role fit", "Structure"].map((name) => ({ name, score: overall, note: "Build stronger answers with a clear situation, action, result, and trade-off." })),
+    strengths: answered ? ["You completed the interview flow.", "Your responses are available below for review."] : ["You reached the report and can retry any question."],
+    gaps: ["Add measurable outcomes to each example.", "Name the decision you made and the trade-off you accepted."],
+    perQuestion: questions.map((question) => ({ questionId: question.id, score: answers.find((answer) => answer.questionId === question.id)?.text.trim() ? overall : 15, verdict: "Use a specific example with your role, the decision, and the outcome.", missed: ["Clear ownership", "Concrete evidence or result"] })),
+  }
+}
+
+function fallbackSheet(setup: InterviewSetup): CheatSheet {
+  return { title: `${setup.roleTitle || "Interview"} practice notes`, intro: "Use these notes to strengthen your next answer. Focus on proof of ownership and measured impact.", sections: [{ topic: "Answer structure", whyItMatters: "Clear structure makes your experience easy to assess.", keyPoints: ["Start with the context and your responsibility.", "Explain the decision and trade-off.", "End with a measurable outcome and what you learned."], links: [] }], quickWins: ["Prepare two project stories with metrics.", "Practice explaining one technical trade-off out loud."] }
+}
+
 export default function Home() {
-  const { apiKey, setApiKey, model, setModel, clearKey, loaded } = useSettings()
+  const { apiKey, setApiKey, model, setModel, clearKey } = useSettings()
   const [settingsOpen, setSettingsOpen] = useState(false)
 
   const [jobDescription, setJobDescription] = useState("")
@@ -47,7 +160,7 @@ export default function Home() {
   const [linkedinUrl, setLinkedinUrl] = useState("")
   const [level, setLevel] = useState<ExperienceLevel>("intermediate")
   const [mode, setMode] = useState<InterviewMode>("pressure")
-  const [rounds, setRounds] = useState(7)
+  const [rounds, setRounds] = useState(5)
 
   const [stage, setStage] = useState<Stage>("setup")
   const [busy, setBusy] = useState(false)
@@ -55,65 +168,27 @@ export default function Home() {
 
   const [setup, setSetup] = useState<InterviewSetup | null>(null)
   const [questions, setQuestions] = useState<Question[]>([])
-  const [riskMap, setRiskMap] = useState<RiskMap | null>(null)
   const [answers, setAnswers] = useState<Answer[]>([])
   const [feedback, setFeedback] = useState<Feedback | null>(null)
   const [sheet, setSheet] = useState<CheatSheet | null>(null)
   const [selectedJob, setSelectedJob] = useState<JobMatch | null>(null)
+  const [jobMatches, setJobMatches] = useState<JobMatch[]>([])
 
-  useEffect(() => {
-    if (stage !== "job-scan") return
-    const timer = window.setTimeout(() => {
-      setJobDescription(SAMPLE_JOB_DESCRIPTION)
-      setStage("job-matches")
-    }, 3200)
-    return () => window.clearTimeout(timer)
-  }, [stage])
-
-  // Restore the last draft so a refresh mid-prep is not punishing. This has to
-  // run after mount: reading localStorage during render would desync hydration
-  // against the server-rendered empty fields.
-  /* eslint-disable react-hooks/set-state-in-effect */
-  useEffect(() => {
-    const d = draftStore.get()
-    if (!d) return
-    setJobDescription(d.jobDescription)
-    setResume(d.resume)
-    if (d.level) setLevel(d.level as ExperienceLevel)
-  }, [])
-  /* eslint-enable react-hooks/set-state-in-effect */
-
-  useEffect(() => {
-    if (jobDescription || resume) {
-      draftStore.set({ jobDescription, resume, level })
-    }
-  }, [jobDescription, resume, level])
-
-  function fail(err: unknown) {
-    setError(err instanceof Error ? err.message : "Something went wrong. Retry.")
-  }
-
-  async function startInterview() {
+  async function startInterview(job?: JobMatch) {
     setBusy(true)
     setError(null)
+    const selectedDescription = job
+      ? `${job.role} — ${job.company}\n${job.location}\n\n${job.jd}`
+      : jobDescription
     const s: InterviewSetup = {
-      jobDescription,
+      jobDescription: selectedDescription,
       resume,
       level,
       mode,
-      roleTitle: "",
-      company: "",
+      roleTitle: job?.role ?? "",
+      company: job?.company ?? "",
     }
     try {
-      const risk = await generateJSON<RiskMap>({
-        apiKey,
-        model,
-        system: INTERVIEWER_SYSTEM,
-        prompt: riskMapPrompt(s),
-        schema: RISK_MAP_SCHEMA,
-        temperature: 0.45,
-      })
-
       const out = await generateJSON<{
         roleTitle: string
         company: string
@@ -127,25 +202,38 @@ export default function Home() {
         apiKey,
         model,
         system: INTERVIEWER_SYSTEM,
-        prompt: questionPrompt(s, 7),
+        prompt: questionPrompt(s, 1),
         schema: QUESTION_SCHEMA,
       })
 
-      if (!out.questions || out.questions.length < 7) {
-        throw new Error(
-          "The interviewer could not prepare all 7 follow-up questions. Retry.",
-        )
-      }
+      const firstQuestion = out.questions?.[0]
+      if (!firstQuestion) throw new GeminiError("We could not prepare the first question. Please try again.")
 
-      setSetup({ ...s, roleTitle: out.roleTitle, company: out.company })
-      setQuestions(out.questions.map((q, i) => ({ ...q, id: `q${i + 1}` })))
-      setRiskMap(risk)
-      setStage("risk-map")
-    } catch (err) {
-      fail(err)
+      setSetup({ ...s, roleTitle: job?.role || out.roleTitle, company: job?.company || out.company })
+      setQuestions([{ ...firstQuestion, id: "q1" }])
+      setStage("interview")
+    } catch {
+      setSetup({ ...s, roleTitle: job?.role || inferredRole(resume), company: job?.company || "Practice interview" })
+      setQuestions([fallbackQuestion(s, 1)])
+      setError(null)
+      setStage("interview")
     } finally {
       setBusy(false)
     }
+  }
+
+  async function getFollowUp(given: Answer[]) {
+    if (!setup) throw new GeminiError("Please restart the interview and try again.")
+    let question: Question
+    try {
+      const out = await generateJSON<{ roleTitle: string; company: string; questions: Omit<Question, "id">[] }>({ apiKey, model, system: INTERVIEWER_SYSTEM, prompt: followUpQuestionPrompt(setup, questions, given, questions.length + 1), schema: QUESTION_SCHEMA, temperature: 0.55 })
+      const next = out.questions?.[0]
+      question = next ? { ...next, id: `q${questions.length + 1}` } : fallbackQuestion(setup, questions.length + 1)
+    } catch {
+      question = fallbackQuestion(setup, questions.length + 1)
+    }
+    setQuestions((current) => [...current, question])
+    return question
   }
 
   async function grade(given: Answer[]) {
@@ -164,9 +252,10 @@ export default function Home() {
       })
       setFeedback(out)
       setStage("feedback")
-    } catch (err) {
-      fail(err)
-      setStage("interview")
+    } catch {
+      setFeedback(fallbackFeedback(questions, given))
+      setError(null)
+      setStage("feedback")
     }
   }
 
@@ -194,8 +283,10 @@ export default function Home() {
       })
       setSheet(out)
       setStage("cheatsheet")
-    } catch (err) {
-      fail(err)
+    } catch {
+      setSheet(fallbackSheet(setup))
+      setError(null)
+      setStage("cheatsheet")
     } finally {
       setBusy(false)
     }
@@ -203,54 +294,69 @@ export default function Home() {
 
   function restart() {
     setStage("setup")
+    setJobDescription("")
+    setResume("")
+    setLinkedinUrl("")
     setQuestions([])
-    setRiskMap(null)
     setAnswers([])
     setFeedback(null)
     setSheet(null)
     setSelectedJob(null)
+    setJobMatches([])
     setError(null)
   }
 
   function connectLinkedIn() {
-    // Frontend demo state until a LinkedIn OAuth callback is provided by the backend.
-    setResume(SAMPLE_LINKEDIN_PROFILE)
     setStage("profile-import")
     setError(null)
   }
 
-  function continueFromProfile() {
-    if (!resume.trim() && linkedinUrl.trim()) setResume(SAMPLE_LINKEDIN_PROFILE)
+  async function continueFromProfile() {
+    setBusy(true)
     setStage("job-scan")
     setError(null)
+    const scanDelay = new Promise((resolve) => window.setTimeout(resolve, 3_200))
+    try {
+      const requestOptions = {
+        apiKey,
+        model,
+        system:
+          "You are a precise technical recruiter. You match candidate profiles to interview-prep target roles and never fabricate verified live openings.",
+        prompt: jobMatchPrompt({ resume, linkedinUrl, level }),
+        temperature: 0.35,
+      }
+      let out: { jobs: JobMatch[] }
+      try {
+        out = await generateJSON({ ...requestOptions, schema: JOB_MATCH_SCHEMA })
+      } catch {
+        // Some keys only expose models without structured-output support. The
+        // same Gemini request still works as plain JSON, so try it before the
+        // local practice fallback.
+        out = await generateJSON({
+          ...requestOptions,
+          prompt: `${requestOptions.prompt}\n\nReturn only valid JSON shaped as {"jobs": [...]}, including every field requested above.`,
+        })
+      }
+      await scanDelay
+
+      if (!out.jobs?.length) {
+        throw new GeminiError("We could not find matches from that profile. Add a little more resume detail and try again.")
+      }
+
+      setJobMatches(out.jobs.slice(0, 5))
+      setStage("job-matches")
+    } catch {
+      await scanDelay
+      setJobMatches(fallbackJobs(resume))
+      setError(null)
+      setStage("job-matches")
+    } finally {
+      setBusy(false)
+    }
   }
 
   return (
     <>
-      <nav className="sticky top-0 z-40 flex items-center justify-between border-b border-neutral-200 bg-white/85 px-6 py-3 backdrop-blur dark:border-neutral-800 dark:bg-neutral-950/85">
-        <button onClick={restart} className="flex items-center gap-2 font-semibold">
-          <span className="flex h-8 w-8 items-center justify-center rounded-full bg-neutral-950 text-xs text-white shadow-sm dark:bg-white dark:text-neutral-950">
-            PX
-          </span>
-          Pressure
-        </button>
-        <div className="flex items-center gap-3 text-sm">
-          {loaded ? (
-            <span
-              className={`hidden sm:inline ${apiKey ? "text-emerald-600" : "text-amber-600"}`}
-            >
-              {apiKey ? "Key set" : "No key"}
-            </span>
-          ) : null}
-          <button
-            onClick={() => setSettingsOpen(true)}
-            className="rounded-md px-3 py-1.5 hover:bg-neutral-100 dark:hover:bg-neutral-800"
-          >
-            Settings
-          </button>
-        </div>
-      </nav>
-
       {stage === "setup" ? (
         <SetupScreen
           jobDescription={jobDescription}
@@ -279,6 +385,7 @@ export default function Home() {
           linkedinUrl={linkedinUrl}
           setLinkedinUrl={setLinkedinUrl}
           onContinue={continueFromProfile}
+          error={error}
         />
       ) : null}
 
@@ -286,32 +393,15 @@ export default function Home() {
 
       {stage === "job-matches" ? (
         <JobMatchScreen
+          jobs={jobMatches}
           onJoin={(job) => {
             setSelectedJob(job)
             setJobDescription(
               `${job.role} — ${job.company}\n${job.location}\n\n${job.jd}`,
             )
-            setStage("call")
+            void startInterview(job)
           }}
           onBack={() => setStage("profile-import")}
-        />
-      ) : null}
-
-      {stage === "call" && selectedJob ? (
-        <CallScreen
-          job={selectedJob}
-          onStart={startInterview}
-          onBack={() => setStage("job-matches")}
-        />
-      ) : null}
-
-      {stage === "risk-map" && setup && riskMap ? (
-        <RiskMapScreen
-          roleTitle={setup.roleTitle}
-          company={setup.company}
-          riskMap={riskMap}
-          onStart={() => setStage("interview")}
-          onBack={restart}
         />
       ) : null}
 
@@ -320,6 +410,12 @@ export default function Home() {
           roleTitle={setup.roleTitle}
           company={setup.company}
           questions={questions}
+          interviewer={selectedJob?.interviewer ?? "AI Interviewer"}
+          interviewerRole={selectedJob?.interviewerRole ?? "Interview lead"}
+          technicalInterviewer={selectedJob?.technical ?? "Technical Interviewer"}
+          technicalInterviewerRole={selectedJob?.technicalRole ?? "Technical panel"}
+          candidateName={candidateName(resume)}
+          onNextQuestion={getFollowUp}
           onFinish={grade}
           onAbort={restart}
         />
@@ -355,7 +451,7 @@ export default function Home() {
         />
       ) : null}
 
-      {error && stage !== "setup" ? (
+      {error && stage !== "setup" && stage !== "profile-import" ? (
         <p className="mx-auto max-w-3xl px-6 pb-8 text-sm text-red-600">{error}</p>
       ) : null}
 
@@ -372,24 +468,3 @@ export default function Home() {
     </>
   )
 }
-
-const SAMPLE_LINKEDIN_PROFILE = `Priya Nair — Frontend Engineer
-Bengaluru · 2,400 followers
-
-Experience · 6 years
-Zeta Commerce (2022 - present) — Senior Frontend Engineer
-- Built the seller analytics dashboard in React + TypeScript, used by 4k sellers
-- Cut initial bundle from 890kB to 310kB by code-splitting routes and lazy charts
-- Added a WebSocket order feed with optimistic updates and reconnect backoff
-
-Freshworks (2020 - 2022) — Frontend Engineer
-- Maintained internal admin tooling in React 17
-- Wrote the team's first Playwright end-to-end suite
-
-Skills
-React, TypeScript, Next.js, Tailwind, Redux Toolkit, Jest, Playwright, D3`
-
-const SAMPLE_JOB_DESCRIPTION = `Frontend Engineer (Intermediate) — Nimbus Analytics, Bengaluru (Hybrid)
-
-Nimbus builds real-time dashboards for logistics teams. The role needs production React,
-TypeScript, Next.js, performance profiling, charting, and WebSocket experience.`

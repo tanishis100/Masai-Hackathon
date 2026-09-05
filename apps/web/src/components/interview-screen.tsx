@@ -1,37 +1,67 @@
 "use client"
 
+import Image from "next/image"
 import { useCallback, useEffect, useRef, useState } from "react"
-import { Button } from "@repo/ui/button"
 
 import { useDictation, useSpeaker } from "@/hooks/use-speech"
 import type { Answer, Question } from "@/lib/types"
 
+const TOTAL_QUESTIONS = 5
+
 function clock(total: number) {
-  const m = Math.floor(total / 60)
-    .toString()
-    .padStart(2, "0")
-  const s = (total % 60).toString().padStart(2, "0")
-  return `${m}:${s}`
+  const minutes = Math.floor(total / 60).toString().padStart(2, "0")
+  const seconds = (total % 60).toString().padStart(2, "0")
+  return `${minutes}:${seconds}`
 }
 
-const KIND_LABEL: Record<string, string> = {
-  intro: "Warm-up",
-  technical: "Technical",
-  behavioural: "Behavioural",
-  "system-design": "System design",
-  "role-fit": "Role fit",
+function Wave({ active }: { active: boolean }) {
+  return (
+    <span className="flex h-4 items-center gap-0.5" aria-hidden="true">
+      {[0, 1, 2, 3].map((bar) => (
+        <span
+          key={bar}
+          className={`w-0.5 rounded-full bg-current ${active ? "animate-pulse" : "h-1.5"}`}
+          style={active ? { height: `${8 + ((bar + 1) % 3) * 4}px`, animationDelay: `${bar * 90}ms` } : undefined}
+        />
+      ))}
+    </span>
+  )
+}
+
+function CameraIcon({ off = false }: { off?: boolean }) {
+  return <svg viewBox="0 0 24 24" className="h-4 w-4 fill-none stroke-current stroke-2" aria-hidden="true"><path d="M3 7h11a2 2 0 0 1 2 2v6a2 2 0 0 1-2 2H3z" /><path d="m16 10 5-3v10l-5-3z" />{off ? <path d="M3 3 21 21" /> : null}</svg>
+}
+
+function AudioIcon({ muted = false }: { muted?: boolean }) {
+  return <svg viewBox="0 0 24 24" className="h-4 w-4 fill-none stroke-current stroke-2" aria-hidden="true"><path d="M4 10v4h4l5 4V6l-5 4z" />{muted ? <path d="M17 9l4 6m0-6-4 6" /> : <path d="M17 9a4 4 0 0 1 0 6M20 6a8 8 0 0 1 0 12" />}</svg>
+}
+
+function MicIcon({ active }: { active: boolean }) {
+  return <svg viewBox="0 0 24 24" className="h-4 w-4 fill-none stroke-current stroke-2" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3" />{active ? <path d="M5 11a7 7 0 0 0 14 0M12 18v3M8 21h8" /> : <path d="M4 4 20 20M6 11a6 6 0 0 0 9.5 4.9" />}</svg>
 }
 
 export function InterviewScreen({
   roleTitle,
   company,
+  interviewer,
+  interviewerRole,
+  technicalInterviewer,
+  technicalInterviewerRole,
+  candidateName,
   questions,
+  onNextQuestion,
   onFinish,
   onAbort,
 }: {
   roleTitle: string
   company: string
+  interviewer: string
+  interviewerRole: string
+  technicalInterviewer: string
+  technicalInterviewerRole: string
+  candidateName: string
   questions: Question[]
+  onNextQuestion: (answers: Answer[]) => Promise<Question>
   onFinish: (answers: Answer[]) => void
   onAbort: () => void
 }) {
@@ -40,203 +70,164 @@ export function InterviewScreen({
   const [text, setText] = useState("")
   const [elapsed, setElapsed] = useState(0)
   const [questionStart, setQuestionStart] = useState(0)
-  const taRef = useRef<HTMLTextAreaElement | null>(null)
+  const [loadingQuestion, setLoadingQuestion] = useState(false)
+  const [cameraEnabled, setCameraEnabled] = useState(true)
+  const [cameraError, setCameraError] = useState<string | null>(null)
+  const videoRef = useRef<HTMLVideoElement | null>(null)
+  const streamRef = useRef<MediaStream | null>(null)
 
   const current = questions[index]
-  const last = index === questions.length - 1
-
+  const technicalQuestion = current?.kind === "technical" || current?.kind === "system-design"
   const { speak, cancel, speaking, enabled, setEnabled } = useSpeaker()
   const appendFinal = useCallback((chunk: string) => {
-    setText((prev) => (prev ? `${prev.trimEnd()} ${chunk.trim()}` : chunk.trim()))
+    setText((previous) => (previous ? `${previous.trimEnd()} ${chunk.trim()}` : chunk.trim()))
   }, [])
   const mic = useDictation(appendFinal)
 
   useEffect(() => {
-    const t = setInterval(() => setElapsed((e) => e + 1), 1000)
-    return () => clearInterval(t)
+    const timer = window.setInterval(() => setElapsed((value) => value + 1), 1000)
+    return () => window.clearInterval(timer)
   }, [])
 
-  // Ask the question aloud whenever we move to a new one. The per-question clock
-  // is stamped in commit() instead, so no state is set from inside this effect.
   useEffect(() => {
-    if (current) speak(current.text)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [index])
+    let mounted = true
+    async function connectCamera() {
+      try {
+        if (!navigator.mediaDevices?.getUserMedia) throw new Error("Camera access is not available in this browser.")
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: true,
+          audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
+        })
+        if (!mounted) {
+          stream.getTracks().forEach((track) => track.stop())
+          return
+        }
+        streamRef.current = stream
+        if (videoRef.current) videoRef.current.srcObject = stream
+      } catch {
+        if (mounted) setCameraError("Camera and microphone access is unavailable. You can still complete the interview by typing.")
+      }
+    }
+    void connectCamera()
+    return () => {
+      mounted = false
+      streamRef.current?.getTracks().forEach((track) => track.stop())
+      streamRef.current = null
+    }
+  }, [])
 
-  function commit() {
+  useEffect(() => {
     if (!current) return
+    let resumed = false
+    const resumeMic = () => {
+      if (resumed) return
+      resumed = true
+      mic.start()
+    }
+
+    // Pause recognition only while the interviewer is speaking, then resume it
+    // automatically so the mic stays active for every candidate response.
+    mic.stop()
+    speak(current.text, resumeMic)
+    // Some browser voices do not emit an end event. Do not leave captions
+    // disabled if that happens; questions are intentionally short.
+    const fallbackStart = window.setTimeout(resumeMic, 7_000)
+    return () => {
+      resumed = true
+      window.clearTimeout(fallbackStart)
+    }
+    // A new Gemini question is the only event that should trigger a spoken prompt.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [index, current?.id])
+
+  async function submitAnswer() {
+    if (!current || loadingQuestion) return
     const answer: Answer = {
       questionId: current.id,
-      text,
+      text: text.trim(),
       seconds: Math.max(0, elapsed - questionStart),
     }
-    const next = [...answers.filter((a) => a.questionId !== current.id), answer]
-    setAnswers(next)
+    const nextAnswers = [...answers, answer]
+    setAnswers(nextAnswers)
     setText("")
-    mic.stop()
     cancel()
-    if (last) {
-      onFinish(next)
-    } else {
+
+    if (index === TOTAL_QUESTIONS - 1) {
+      mic.stop()
+      onFinish(nextAnswers)
+      return
+    }
+
+    setLoadingQuestion(true)
+    try {
+      await onNextQuestion(nextAnswers)
       setQuestionStart(elapsed)
-      setIndex((i) => i + 1)
+      setIndex((value) => value + 1)
+    } catch {
+      setText(answer.text)
+      setAnswers(answers)
+    } finally {
+      setLoadingQuestion(false)
     }
   }
 
   if (!current) return null
 
   return (
-    <div className="relative mx-auto flex min-h-screen max-w-4xl flex-col px-6 py-8">
-      <div className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[32rem] rounded-b-[3rem] bg-[linear-gradient(135deg,rgba(56,189,248,0.42),rgba(226,232,240,0.72),rgba(251,207,232,0.30))] blur-0 dark:from-sky-950/50 dark:via-neutral-900 dark:to-pink-950/30" />
-      {/* Call header */}
-      <div className="mx-auto flex w-full max-w-2xl items-center gap-4 rounded-[2rem] border border-white/55 bg-white/40 p-5 shadow-sm backdrop-blur-md dark:border-white/10 dark:bg-white/10">
-        <div className="relative">
-          <div className="flex h-16 w-16 items-center justify-center rounded-full bg-white/80 text-lg font-semibold text-neutral-950 shadow-sm">
-            {(company || "AI").slice(0, 2).toUpperCase()}
+    <main className="min-h-screen bg-[#171819] p-3 text-white sm:p-5">
+      <div className="mx-auto flex min-h-[calc(100vh-24px)] max-w-[1500px] flex-col">
+        <header className="grid shrink-0 grid-cols-[1fr_auto_1fr] items-center gap-3 py-2 sm:py-3">
+          <div className="min-w-0">
+            <p className="truncate text-sm font-semibold sm:text-base">{roleTitle || "Live interview"}</p>
+            <p className="truncate text-xs text-white/55">{company || "Gemini interview panel"}</p>
           </div>
-          {speaking ? (
-            <span className="absolute -right-0.5 -bottom-0.5 flex h-4 w-4">
-              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
-              <span className="relative inline-flex h-4 w-4 rounded-full bg-emerald-500" />
-            </span>
-          ) : null}
+          <div className="text-center">
+            <p className="font-mono text-sm tabular-nums text-white/75">{clock(elapsed)}</p>
+            <p className="mt-1 text-xs font-semibold text-white/65">Question {index + 1} / {TOTAL_QUESTIONS}</p>
+          </div>
+          <div className="flex justify-end"><button onClick={onAbort} className="rounded-full bg-red-500/90 px-3 py-2 text-xs font-semibold hover:bg-red-500 sm:px-4">End call</button></div>
+        </header>
+
+        <div className="mx-auto mb-3 flex w-full max-w-xl gap-1.5" aria-label={`Interview progress: question ${index + 1} of ${TOTAL_QUESTIONS}`}>
+          {Array.from({ length: TOTAL_QUESTIONS }, (_, item) => <span key={item} className={`h-1 flex-1 rounded-full ${item < index ? "bg-emerald-400" : item === index ? "bg-white" : "bg-white/20"}`} />)}
         </div>
-        <div className="min-w-0 flex-1">
-          <p className="truncate text-lg font-semibold">{roleTitle || "Phone screen"}</p>
-          <p className="truncate text-sm text-neutral-600 dark:text-neutral-300">
-            {company ? `${company} · ` : ""}
-            {speaking ? "speaking…" : "listening"}
-          </p>
-        </div>
-        <div className="text-right">
-          <p className="font-mono text-2xl tabular-nums">{clock(elapsed)}</p>
-          <p className="text-xs text-neutral-600 dark:text-neutral-300">
-            {index + 1} of {questions.length}
-          </p>
-        </div>
+
+        <section className="grid min-h-0 flex-1 grid-cols-1 gap-3 md:grid-cols-3">
+          <div className={`relative min-h-64 overflow-hidden rounded-lg bg-[#303134] md:min-h-0 ${speaking && !technicalQuestion ? "ring-2 ring-emerald-400" : ""}`}>
+            <Image src="/interviewer-profile.png" alt={interviewer} fill priority className="object-cover object-center" sizes="(min-width: 1024px) 70vw, 100vw" />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-transparent to-black/20" />
+            <div className="absolute bottom-0 left-0 right-0 bg-black/55 px-3 py-2 text-xs backdrop-blur">
+              <div className="flex items-center gap-2"><span>{interviewer} ({interviewerRole})</span>{speaking && !technicalQuestion ? <span className="flex items-center gap-1.5 rounded-full bg-emerald-400 px-2 py-1 text-xs text-neutral-950"><Wave active />Speaking</span> : null}</div>
+              {!technicalQuestion ? <p className="mt-1 line-clamp-3 leading-5 text-white/90">{current.text}</p> : null}
+            </div>
+          </div>
+
+          <div className={`relative min-h-64 overflow-hidden rounded-lg bg-[#303134] md:min-h-0 ${mic.listening ? "ring-2 ring-sky-400" : ""}`}>
+            {cameraEnabled && !cameraError ? <video ref={videoRef} autoPlay muted playsInline className="h-full w-full object-cover" /> : <div className="flex h-full items-center justify-center text-sm text-white/60">Camera off</div>}
+            <div className="absolute bottom-0 left-0 right-0 bg-black/55 px-3 py-2 text-xs backdrop-blur"><div className="flex items-center justify-between"><span>{candidateName} ({roleTitle || "Candidate"})</span>{mic.listening ? <span className="flex items-center gap-1.5 text-sky-300"><Wave active />Speaking</span> : <span className="text-white/55">Mic paused</span>}</div>{text || mic.interim ? <p className="mt-1 line-clamp-2 leading-5 text-white/90">{text}{mic.interim ? `${text ? " " : ""}${mic.interim}` : ""}</p> : null}</div>
+          </div>
+          <div className={`relative min-h-64 overflow-hidden rounded-lg bg-[#303134] md:min-h-0 ${speaking && technicalQuestion ? "ring-2 ring-emerald-400" : ""}`}>
+            <Image src="/interviewer-sana.png" alt="Technical interviewer" fill className="object-cover" sizes="(min-width: 768px) 33vw, 100vw" />
+            <div className="absolute bottom-0 left-0 right-0 bg-black/55 px-3 py-2 text-xs backdrop-blur"><div className="flex items-center gap-2"><span>{technicalInterviewer} ({technicalInterviewerRole})</span>{speaking && technicalQuestion ? <span className="flex items-center gap-1.5 rounded-full bg-emerald-400 px-2 py-1 text-xs text-neutral-950"><Wave active />Speaking</span> : null}</div>{technicalQuestion ? <p className="mt-1 line-clamp-3 leading-5 text-white/90">{current.text}</p> : null}</div>
+          </div>
+        </section>
+
+        <section className="mt-3 grid gap-3 lg:grid-cols-[minmax(0,1fr)_330px]">
+          <div className="rounded-lg bg-[#252627] p-4 sm:p-5">
+            <div className="flex items-center justify-between gap-3"><p className="text-xs font-semibold uppercase tracking-wide text-white/50">{candidateName}&apos;s live caption</p><span className={`flex items-center gap-1.5 text-xs ${mic.listening ? "text-sky-300" : "text-white/45"}`}>{mic.listening ? <><Wave active />Listening</> : "Microphone paused"}</span></div>
+            <textarea value={text + (mic.interim ? `${text ? " " : ""}${mic.interim}` : "")} onChange={(event) => setText(event.target.value)} rows={3} maxLength={600} placeholder="Your speech will appear here live." className="mt-3 w-full resize-none rounded-md bg-white/5 px-3 py-2 text-sm leading-6 text-white outline-none placeholder:text-white/35 focus:bg-white/10" />
+          </div>
+          <div className="flex items-center justify-between gap-2 rounded-lg bg-[#252627] p-3">
+            <div className="flex items-center gap-2">
+              <button onClick={mic.listening ? mic.stop : mic.start} title={mic.listening ? "Pause microphone" : "Start microphone"} className={`flex h-11 w-11 items-center justify-center rounded-full ${mic.listening ? "bg-sky-500 text-white" : "bg-white/15 hover:bg-white/25"}`} aria-label={mic.listening ? "Pause microphone" : "Start microphone"}><MicIcon active={mic.listening} /></button>
+              <button onClick={() => setCameraEnabled((value) => !value)} title={cameraEnabled ? "Turn camera off" : "Turn camera on"} className={`flex h-11 w-11 items-center justify-center rounded-full ${cameraEnabled ? "bg-white/15 hover:bg-white/25" : "bg-red-500/80"}`} aria-label={cameraEnabled ? "Turn camera off" : "Turn camera on"}><CameraIcon off={!cameraEnabled} /></button>
+              <button onClick={() => { setEnabled(!enabled); if (enabled) cancel() }} title={enabled ? "Mute interviewer audio" : "Unmute interviewer audio"} className={`flex h-11 w-11 items-center justify-center rounded-full ${enabled ? "bg-white/15 hover:bg-white/25" : "bg-red-500/80"}`} aria-label={enabled ? "Mute interviewer audio" : "Unmute interviewer audio"}><AudioIcon muted={!enabled} /></button>
+            </div>
+            <button onClick={() => void submitAnswer()} disabled={loadingQuestion} className="rounded-full bg-emerald-400 px-4 py-2 text-xs font-bold text-neutral-950 hover:bg-emerald-300 disabled:cursor-wait disabled:opacity-60">{loadingQuestion ? "Preparing follow-up..." : index === TOTAL_QUESTIONS - 1 ? "Finish interview" : "Next question"}</button>
+          </div>
+        </section>
+        {mic.error || cameraError ? <p className="mt-2 text-center text-xs text-amber-300">{mic.error ?? cameraError}</p> : null}
       </div>
-
-      {/* Progress */}
-      <div className="mt-3 flex gap-1.5">
-        {questions.map((q, i) => (
-          <div
-            key={q.id}
-            className={`h-1 flex-1 rounded-full ${
-              i < index
-                ? "bg-brand-600"
-                : i === index
-                  ? "bg-brand-400"
-                  : "bg-neutral-200 dark:bg-neutral-800"
-            }`}
-          />
-        ))}
-      </div>
-
-      {/* Question */}
-      <div className="mt-10 rounded-[2rem] border border-white/55 bg-white/55 p-6 shadow-sm backdrop-blur-md dark:border-white/10 dark:bg-neutral-950/45">
-        <span className="inline-block rounded-full bg-white/70 px-3 py-1 text-xs font-medium text-neutral-600 shadow-sm dark:bg-neutral-800 dark:text-neutral-400">
-          {KIND_LABEL[current.kind] ?? current.kind}
-        </span>
-        <p className="mt-4 text-3xl leading-snug font-semibold">{current.text}</p>
-        {current.pressureTarget ? (
-          <p className="mt-3 max-w-2xl text-sm text-neutral-600 dark:text-neutral-400">
-            Pressure target: {current.pressureTarget}
-          </p>
-        ) : null}
-        <div className="mt-3 flex flex-wrap gap-3 text-sm">
-          <button
-            className="text-brand-600 underline"
-            onClick={() => speak(current.text)}
-          >
-            Say it again
-          </button>
-          <button
-            className="text-neutral-500 underline"
-            onClick={() => {
-              setEnabled(!enabled)
-              if (enabled) cancel()
-            }}
-          >
-            {enabled ? "Mute interviewer" : "Unmute interviewer"}
-          </button>
-        </div>
-      </div>
-
-      {/* Answer */}
-      <div className="mt-6 flex-1">
-        <textarea
-          ref={taRef}
-          value={text + (mic.interim ? ` ${mic.interim}` : "")}
-          onChange={(e) => setText(e.target.value)}
-          rows={9}
-          placeholder={
-            mic.supported
-              ? "Speak your answer, or type it here…"
-              : "Type your answer here…"
-          }
-          className="w-full resize-y rounded-[1.75rem] border border-white/70 bg-white/70 p-5 text-base leading-relaxed shadow-sm outline-none backdrop-blur focus:border-brand-500 dark:border-neutral-800 dark:bg-neutral-900/75"
-        />
-        <div className="mt-2 flex items-center justify-between text-xs text-neutral-500">
-          <span>
-            {text.trim() ? `${text.trim().split(/\s+/).length} words` : "no answer yet"}
-          </span>
-          <span>{clock(Math.max(0, elapsed - questionStart))} on this question</span>
-        </div>
-        {mic.error ? <p className="mt-2 text-xs text-amber-600">{mic.error}</p> : null}
-      </div>
-
-      {/* Controls */}
-      <div className="sticky bottom-0 mt-6 flex flex-wrap items-center gap-3 border-t border-white/60 bg-[#f7f9f8]/85 py-4 backdrop-blur dark:border-neutral-800 dark:bg-neutral-950/85">
-        {mic.supported ? (
-          <button
-            onClick={mic.listening ? mic.stop : mic.start}
-            className={`flex h-12 w-12 items-center justify-center rounded-full transition-colors ${
-              mic.listening
-                ? "bg-red-600 text-white"
-                : "bg-neutral-200 text-neutral-700 hover:bg-neutral-300 dark:bg-neutral-800 dark:text-neutral-200"
-            }`}
-            aria-label={mic.listening ? "Stop recording" : "Start recording"}
-          >
-            {mic.listening ? (
-              <span className="h-3.5 w-3.5 rounded-sm bg-white" />
-            ) : (
-              <svg
-                width="20"
-                height="20"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-              >
-                <rect x="9" y="2" width="6" height="12" rx="3" />
-                <path d="M5 11a7 7 0 0 0 14 0M12 18v4" />
-              </svg>
-            )}
-          </button>
-        ) : null}
-
-        <Button onClick={commit} className="px-6 py-2.5">
-          {last ? "Finish & get feedback" : "Next question"}
-        </Button>
-
-        {!last ? (
-          <Button variant="ghost" onClick={commit}>
-            Skip
-          </Button>
-        ) : null}
-
-        <button
-          className="ml-auto text-sm text-neutral-500 underline hover:text-red-600"
-          onClick={() => {
-            mic.stop()
-            cancel()
-            onAbort()
-          }}
-        >
-          End call
-        </button>
-      </div>
-    </div>
+    </main>
   )
 }

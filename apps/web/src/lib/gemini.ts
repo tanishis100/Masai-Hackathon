@@ -8,12 +8,12 @@
 const ENDPOINT = "https://generativelanguage.googleapis.com/v1beta/models"
 
 export const GEMINI_MODELS = [
-  { id: "gemini-2.5-flash", label: "2.5 Flash — fast, best for a timed run" },
-  { id: "gemini-2.5-pro", label: "2.5 Pro — slower, sharper feedback" },
-  { id: "gemini-2.0-flash", label: "2.0 Flash — cheapest fallback" },
+  { id: "gemini-3.5-flash", label: "3.5 Flash — fast, best for a timed run" },
+  { id: "gemini-3.8-flash", label: "3.8 Flash — newer flash tier" },
+  { id: "gemini-3.1-pro", label: "3.1 Pro — slower, sharper feedback" },
 ] as const
 
-export const DEFAULT_MODEL = "gemini-2.5-flash"
+export const DEFAULT_MODEL = "gemini-3.5-flash"
 
 /** A trimmed-down OpenAPI schema, which is what Gemini accepts. */
 export type Schema = {
@@ -40,8 +40,10 @@ function explain(status: number, raw: string): string {
     return "That API key was rejected. Check it in Settings."
   if (status === 401 || status === 403)
     return "Gemini refused the key. Make sure it is a Generative Language API key from aistudio.google.com."
+  if (status === 404)
+    return "Gemini does not recognise that model, or your key has no access to it. Pick a different model in Settings."
   if (status === 429)
-    return "Rate limited by Gemini. Wait a few seconds and retry, or switch to 2.0 Flash in Settings."
+    return "Rate limited by Gemini. Wait a few seconds and retry, or switch to another model in Settings."
   if (status >= 500) return "Gemini is having a moment. Retry in a second."
   return `Gemini returned ${status}: ${raw.slice(0, 300)}`
 }

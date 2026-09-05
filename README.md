@@ -30,7 +30,7 @@ The app is **100% client-side**. There are no API routes and no server-side secr
   there is no server. "Forget key" wipes it.
 
 Get a free key at [aistudio.google.com/apikey](https://aistudio.google.com/apikey).
-Model is switchable in Settings (2.5 Flash by default; 2.5 Pro for sharper feedback).
+Model is switchable in Settings (3.5 Flash by default; 3.1 Pro for sharper feedback).
 
 All three Gemini calls use structured output (`responseSchema`), so the app parses
 typed JSON rather than scraping prose.

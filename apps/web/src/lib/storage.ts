@@ -1,6 +1,6 @@
 "use client"
 
-import { DEFAULT_MODEL } from "./gemini"
+import { DEFAULT_MODEL, GEMINI_MODELS } from "./gemini"
 
 /**
  * Everything the app persists lives in localStorage, on the user's own machine.
@@ -59,7 +59,13 @@ export const settingsStore = {
   getKey: () => read(KEY_API) ?? "",
   setKey: (v: string) => write(KEY_API, v),
   clearKey: () => remove(KEY_API),
-  getModel: () => read(KEY_MODEL) ?? DEFAULT_MODEL,
+  /* A model saved by an older build may no longer be offered; fall back rather
+     than leaving the Settings dropdown on a value it cannot display. */
+  getModel: () => {
+    const saved = read(KEY_MODEL)
+    const known = GEMINI_MODELS.some((m) => m.id === saved)
+    return saved && known ? saved : DEFAULT_MODEL
+  },
   setModel: (v: string) => write(KEY_MODEL, v),
 }
 

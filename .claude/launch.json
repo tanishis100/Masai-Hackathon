@@ -4,13 +4,23 @@
     {
       "name": "web",
       "runtimeExecutable": "npm",
-      "runtimeArgs": ["run", "dev", "--workspace", "@repo/web"],
+      "runtimeArgs": [
+        "run",
+        "dev",
+        "--workspace",
+        "@repo/web"
+      ],
       "port": 3000
     },
     {
       "name": "docs",
       "runtimeExecutable": "npm",
-      "runtimeArgs": ["run", "dev", "--workspace", "@repo/docs"],
+      "runtimeArgs": [
+        "run",
+        "dev",
+        "--workspace",
+        "@repo/docs"
+      ],
       "port": 3001
     }
   ]

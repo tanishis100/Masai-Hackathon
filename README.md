@@ -1,4 +1,41 @@
-# Masai Hackathon
+# Interview Prep Platform
+
+Paste a LinkedIn job description and your resume. Get a phone-style mock interview
+written against that specific role, a scored breakdown of how you answered, and a
+revision cheat sheet with real reference links.
+
+**Problem Statement 3 — Masai Hackathon.**
+
+## How it works
+
+1. **Setup** — paste the JD and your resume, pick an experience level
+   (Fresher / Intermediate / Senior / Lead) and a question count.
+2. **Interview** — a phone-style call screen. The interviewer speaks each question
+   aloud; you answer by voice (Web Speech dictation) or by typing. A live clock
+   tracks the call and each individual answer.
+3. **Feedback dashboard** — an overall score, four scored dimensions
+   (Technical depth, Communication, Role fit, Structure), what worked, what cost
+   you, and a per-question breakdown with what a strong answer would have hit.
+4. **Cheat sheet** — generated from your weakest answers: dense revision notes plus
+   curated documentation links, downloadable as Markdown or copyable to clipboard.
+
+## No environment variables, no server
+
+The app is **100% client-side**. There are no API routes and no server-side secrets.
+
+- You paste your own Gemini API key into **Settings**.
+- It is stored in `localStorage`, in your browser only.
+- Requests go directly from your browser to `generativelanguage.googleapis.com`.
+- The key never enters the repository, a build, an env var, or any server of ours —
+  there is no server. "Forget key" wipes it.
+
+Get a free key at [aistudio.google.com/apikey](https://aistudio.google.com/apikey).
+Model is switchable in Settings (2.5 Flash by default; 2.5 Pro for sharper feedback).
+
+All three Gemini calls use structured output (`responseSchema`), so the app parses
+typed JSON rather than scraping prose.
+
+## Repo
 
 A Next.js monorepo built on npm workspaces + [Turborepo](https://turborepo.com).
 
@@ -6,8 +43,8 @@ A Next.js monorepo built on npm workspaces + [Turborepo](https://turborepo.com).
 
 ```
 apps/
-  web/                  Next.js app  -> http://localhost:3000
-  docs/                 Next.js app  -> http://localhost:3001
+  web/                  The interview platform -> http://localhost:3000
+  docs/                 Docs surface           -> http://localhost:3001
 packages/
   ui/                   Shared React components + Tailwind design tokens
   eslint-config/        Shared flat ESLint configs (base / react-internal / next)

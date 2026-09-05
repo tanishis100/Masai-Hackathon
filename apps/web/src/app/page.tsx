@@ -6,7 +6,7 @@ import { CheatSheetScreen } from "@/components/cheatsheet-screen"
 import { FeedbackScreen } from "@/components/feedback-screen"
 import { InterviewScreen } from "@/components/interview-screen"
 import { CallScreen } from "@/components/call-screen"
-import { JobMatchScreen } from "@/components/job-match-screen"
+import { JobMatchScreen, type JobMatch } from "@/components/job-match-screen"
 import { ProfileImportScreen } from "@/components/profile-import-screen"
 import { RiskMapScreen } from "@/components/risk-map-screen"
 import { SettingsDialog } from "@/components/settings-dialog"
@@ -59,6 +59,7 @@ export default function Home() {
   const [answers, setAnswers] = useState<Answer[]>([])
   const [feedback, setFeedback] = useState<Feedback | null>(null)
   const [sheet, setSheet] = useState<CheatSheet | null>(null)
+  const [selectedJob, setSelectedJob] = useState<JobMatch | null>(null)
 
   useEffect(() => {
     if (stage !== "job-scan") return
@@ -131,7 +132,9 @@ export default function Home() {
       })
 
       if (!out.questions || out.questions.length < 7) {
-        throw new Error("The interviewer could not prepare all 7 follow-up questions. Retry.")
+        throw new Error(
+          "The interviewer could not prepare all 7 follow-up questions. Retry.",
+        )
       }
 
       setSetup({ ...s, roleTitle: out.roleTitle, company: out.company })
@@ -205,6 +208,7 @@ export default function Home() {
     setAnswers([])
     setFeedback(null)
     setSheet(null)
+    setSelectedJob(null)
     setError(null)
   }
 
@@ -281,11 +285,24 @@ export default function Home() {
       {stage === "job-scan" ? <Thinking kind="job-scan" /> : null}
 
       {stage === "job-matches" ? (
-        <JobMatchScreen onJoin={() => setStage("call")} onBack={() => setStage("profile-import")} />
+        <JobMatchScreen
+          onJoin={(job) => {
+            setSelectedJob(job)
+            setJobDescription(
+              `${job.role} — ${job.company}\n${job.location}\n\n${job.jd}`,
+            )
+            setStage("call")
+          }}
+          onBack={() => setStage("profile-import")}
+        />
       ) : null}
 
-      {stage === "call" ? (
-        <CallScreen onStart={startInterview} onBack={() => setStage("job-matches")} />
+      {stage === "call" && selectedJob ? (
+        <CallScreen
+          job={selectedJob}
+          onStart={startInterview}
+          onBack={() => setStage("job-matches")}
+        />
       ) : null}
 
       {stage === "risk-map" && setup && riskMap ? (

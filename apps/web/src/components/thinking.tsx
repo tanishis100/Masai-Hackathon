@@ -36,7 +36,10 @@ export function Thinking({ kind }: { kind: keyof typeof STEPS | string }) {
 
   useEffect(() => {
     if (!isJobScan) return
-    const timer = window.setInterval(() => setProgress((value) => Math.min(value + 4, 96)), 125)
+    const timer = window.setInterval(
+      () => setProgress((value) => Math.min(value + 4, 96)),
+      125,
+    )
     return () => window.clearInterval(timer)
   }, [isJobScan])
   return (
@@ -53,16 +56,26 @@ export function Thinking({ kind }: { kind: keyof typeof STEPS | string }) {
       {isJobScan ? (
         <div className="mt-8 w-full max-w-sm text-left">
           <div className="flex items-end justify-between gap-4 text-sm">
-            <span className="font-semibold text-neutral-950">Understanding your profile and finding the right jobs</span>
+            <span className="font-semibold text-neutral-950">
+              Understanding your profile and finding the right jobs
+            </span>
             <span className="font-mono text-brand-600">{progress}%</span>
           </div>
           <div className="mt-3 h-2 overflow-hidden rounded-full bg-neutral-200">
-            <div className="h-full rounded-full bg-brand-600 transition-[width] duration-150" style={{ width: `${progress}%` }} />
+            <div
+              className="h-full rounded-full bg-brand-600 transition-[width] duration-150"
+              style={{ width: `${progress}%` }}
+            />
           </div>
-          <p className="mt-3 text-xs text-neutral-500">Matching experience, seniority, location, and skills against current LinkedIn job descriptions.</p>
+          <p className="mt-3 text-xs text-neutral-500">
+            Matching experience, seniority, location, and skills against current LinkedIn
+            job descriptions.
+          </p>
         </div>
       ) : null}
-      <ul className={`${isJobScan ? "mt-6" : "mt-8"} space-y-2.5 text-sm text-neutral-500`}>
+      <ul
+        className={`${isJobScan ? "mt-6" : "mt-8"} space-y-2.5 text-sm text-neutral-500`}
+      >
         {steps.map((s, i) => (
           <li
             key={s}

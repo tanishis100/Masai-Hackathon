@@ -67,104 +67,107 @@ export function SetupScreen(props: Props) {
 
         <section className="relative flex min-h-[calc(100vh-65px)] flex-col items-center justify-center overflow-hidden px-6 py-8 sm:px-8 md:px-10 md:py-10">
           <div className="relative w-full max-w-md text-center">
-          <h1 className="text-6xl font-black leading-[0.88] tracking-normal text-neutral-950 sm:text-7xl">
-            Get that
-            <span className="block text-brand-600">job.</span>
-          </h1>
-          <p className="mx-auto mt-5 max-w-md text-lg leading-8 text-neutral-600">
-            The most realistic and honest interview practice platform to help you get
-            any job.
-          </p>
-
-          <div className="mx-auto mt-7">
-            <Button
-              className="mx-auto h-12 w-auto min-w-[220px] gap-3 bg-[#0a66c2] px-5 text-sm text-white shadow-[0_18px_45px_rgba(10,102,194,0.22)] hover:bg-[#004182] focus-visible:outline-[#0a66c2] dark:bg-[#0a66c2] dark:text-white dark:hover:bg-[#004182]"
-              onClick={props.onLinkedIn}
-              disabled={props.busy}
-            >
-              Master your interview
-            </Button>
-            <p className="mt-3 text-center text-xs leading-5 text-neutral-500">
-              We use your profile to detect risky claims, role gaps, and the questions
-              interviewers are most likely to ask.
+            <h1 className="text-6xl font-black leading-[0.88] tracking-normal text-neutral-950 sm:text-7xl">
+              Get that
+              <span className="block text-brand-600">job.</span>
+            </h1>
+            <p className="mx-auto mt-5 max-w-md text-lg leading-8 text-neutral-600">
+              The most realistic and honest interview practice platform to help you get
+              any job.
             </p>
-          </div>
 
-          {!props.hasKey ? (
-            <div className="mx-auto mt-5 flex max-w-md flex-col items-stretch gap-3 rounded-2xl border border-amber-200 bg-amber-50/80 px-4 py-3 text-left shadow-sm backdrop-blur sm:flex-row sm:items-center sm:justify-between dark:border-amber-800 dark:bg-amber-950">
-              <p className="text-sm text-amber-900 dark:text-amber-200">
-                Add your Gemini key before analysis.
+            <div className="mx-auto mt-7">
+              <Button
+                className="mx-auto h-12 w-auto min-w-[220px] gap-3 bg-[#0a66c2] px-5 text-sm text-white shadow-[0_18px_45px_rgba(10,102,194,0.22)] hover:bg-[#004182] focus-visible:outline-[#0a66c2] dark:bg-[#0a66c2] dark:text-white dark:hover:bg-[#004182]"
+                onClick={props.onLinkedIn}
+                disabled={props.busy}
+              >
+                Master your interview
+              </Button>
+              <p className="mt-3 text-center text-xs leading-5 text-neutral-500">
+                We use your profile to detect risky claims, role gaps, and the questions
+                interviewers are most likely to ask.
               </p>
-              <Button
-                variant="secondary"
-                className="shrink-0 whitespace-nowrap px-5"
-                onClick={props.onOpenSettings}
-              >
-                Add key
-              </Button>
             </div>
-          ) : null}
 
-          {linkedInConnected && ready ? (
-            <div className="mx-auto mt-5 flex max-w-md flex-col gap-3 sm:flex-row">
-              <Button
-                className="h-12 flex-1"
-                onClick={props.onStart}
-                disabled={props.busy || !props.hasKey}
-              >
-                {props.busy ? "Mapping your risks..." : "Start pressure prep"}
-              </Button>
-              <Button
-                variant="secondary"
-                className="h-12"
+            {!props.hasKey ? (
+              <div className="mx-auto mt-5 flex max-w-md flex-col items-stretch gap-3 rounded-2xl border border-amber-200 bg-amber-50/80 px-4 py-3 text-left shadow-sm backdrop-blur sm:flex-row sm:items-center sm:justify-between dark:border-amber-800 dark:bg-amber-950">
+                <p className="text-sm text-amber-900 dark:text-amber-200">
+                  Add your Gemini key before analysis.
+                </p>
+                <Button
+                  variant="secondary"
+                  className="shrink-0 whitespace-nowrap px-5"
+                  onClick={props.onOpenSettings}
+                >
+                  Add key
+                </Button>
+              </div>
+            ) : null}
+
+            {linkedInConnected && ready ? (
+              <div className="mx-auto mt-5 flex max-w-md flex-col gap-3 sm:flex-row">
+                <Button
+                  className="h-12 flex-1"
+                  onClick={props.onStart}
+                  disabled={props.busy || !props.hasKey}
+                >
+                  {props.busy ? "Mapping your risks..." : "Start pressure prep"}
+                </Button>
+                <Button
+                  variant="secondary"
+                  className="h-12"
+                  onClick={() => setShowManual((s) => !s)}
+                >
+                  Edit details
+                </Button>
+              </div>
+            ) : !showManual ? (
+              <button
+                className="mt-5 text-sm font-medium text-neutral-500 underline underline-offset-4 hover:text-neutral-900"
                 onClick={() => setShowManual((s) => !s)}
               >
-                Edit details
-              </Button>
-            </div>
-          ) : !showManual ? (
-            <button
-              className="mt-5 text-sm font-medium text-neutral-500 underline underline-offset-4 hover:text-neutral-900"
-              onClick={() => setShowManual((s) => !s)}
-            >
-              Use manual demo inputs
-            </button>
-          ) : null}
+                Use manual demo inputs
+              </button>
+            ) : null}
 
-          {props.error ? (
-            <p className="mx-auto mt-4 max-w-md rounded-2xl bg-red-50 px-4 py-3 text-sm text-red-700 dark:bg-red-950 dark:text-red-300">
-              {props.error}
-            </p>
-          ) : null}
+            {props.error ? (
+              <p className="mx-auto mt-4 max-w-md rounded-2xl bg-red-50 px-4 py-3 text-sm text-red-700 dark:bg-red-950 dark:text-red-300">
+                {props.error}
+              </p>
+            ) : null}
 
-          {showManual ? (
-            <div className="mt-6 rounded-[1.5rem] border border-white/70 bg-white/75 p-4 text-left shadow-sm backdrop-blur dark:border-neutral-800 dark:bg-neutral-900/75">
-              <div className="grid gap-3">
-                <textarea
-                  value={props.jobDescription}
-                  onChange={(e) => props.setJobDescription(e.target.value)}
-                  rows={4}
-                  placeholder="Paste job description"
-                  className="resize-y rounded-2xl border border-neutral-200 bg-white/80 p-3 text-sm outline-none focus:border-brand-500 dark:border-neutral-800 dark:bg-neutral-950"
-                />
-                <textarea
-                  value={props.resume}
-                  onChange={(e) => props.setResume(e.target.value)}
-                  rows={4}
-                  placeholder="Paste resume or LinkedIn profile text"
-                  className="resize-y rounded-2xl border border-neutral-200 bg-white/80 p-3 text-sm outline-none focus:border-brand-500 dark:border-neutral-800 dark:bg-neutral-950"
-                />
+            {showManual ? (
+              <div className="mt-6 rounded-[1.5rem] border border-white/70 bg-white/75 p-4 text-left shadow-sm backdrop-blur dark:border-neutral-800 dark:bg-neutral-900/75">
+                <div className="grid gap-3">
+                  <textarea
+                    value={props.jobDescription}
+                    onChange={(e) => props.setJobDescription(e.target.value)}
+                    rows={4}
+                    placeholder="Paste job description"
+                    className="resize-y rounded-2xl border border-neutral-200 bg-white/80 p-3 text-sm outline-none focus:border-brand-500 dark:border-neutral-800 dark:bg-neutral-950"
+                  />
+                  <textarea
+                    value={props.resume}
+                    onChange={(e) => props.setResume(e.target.value)}
+                    rows={4}
+                    placeholder="Paste resume or LinkedIn profile text"
+                    className="resize-y rounded-2xl border border-neutral-200 bg-white/80 p-3 text-sm outline-none focus:border-brand-500 dark:border-neutral-800 dark:bg-neutral-950"
+                  />
+                </div>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <Button variant="secondary" onClick={loadLinkedInDemo}>
+                    Fill demo profile
+                  </Button>
+                  <Button
+                    onClick={props.onStart}
+                    disabled={!ready || props.busy || !props.hasKey}
+                  >
+                    {props.busy ? "Mapping..." : "Analyze"}
+                  </Button>
+                </div>
               </div>
-              <div className="mt-3 flex flex-wrap gap-2">
-                <Button variant="secondary" onClick={loadLinkedInDemo}>
-                  Fill demo profile
-                </Button>
-                <Button onClick={props.onStart} disabled={!ready || props.busy || !props.hasKey}>
-                  {props.busy ? "Mapping..." : "Analyze"}
-                </Button>
-              </div>
-            </div>
-          ) : null}
+            ) : null}
           </div>
           <div className="relative mt-8 overflow-hidden rounded-[1.75rem] shadow-2xl md:hidden">
             <Image
@@ -179,7 +182,8 @@ export function SetupScreen(props: Props) {
                 Likely interviewer probe
               </p>
               <p className="mt-1 text-sm font-semibold leading-snug text-neutral-950">
-                &quot;Your LinkedIn says you led the launch. What did you personally own?&quot;
+                &quot;Your LinkedIn says you led the launch. What did you personally
+                own?&quot;
               </p>
             </div>
           </div>

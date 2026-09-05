@@ -3,3 +3,18 @@
 
 /* Scan the shared UI package so its utility classes survive tree-shaking. */
 @source "../../../../packages/ui/src";
+
+::selection {
+  background: color-mix(in oklab, var(--color-brand-500) 28%, white);
+}
+
+body {
+  letter-spacing: 0;
+}
+
+button,
+textarea,
+input,
+select {
+  font: inherit;
+}

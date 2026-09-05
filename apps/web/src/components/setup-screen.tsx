@@ -1,9 +1,10 @@
 "use client"
 
+import Image from "next/image"
 import { useState } from "react"
 import { Button } from "@repo/ui/button"
 
-import { EXPERIENCE_LEVELS, type ExperienceLevel } from "@/lib/types"
+import type { ExperienceLevel, InterviewMode } from "@/lib/types"
 
 type Props = {
   jobDescription: string
@@ -12,186 +13,181 @@ type Props = {
   setResume: (v: string) => void
   level: ExperienceLevel
   setLevel: (v: ExperienceLevel) => void
+  mode: InterviewMode
+  setMode: (v: InterviewMode) => void
   rounds: number
   setRounds: (n: number) => void
   hasKey: boolean
   onOpenSettings: () => void
+  onLinkedIn: () => void
   onStart: () => void
   busy: boolean
   error: string | null
 }
 
-function Field({
-  label,
-  hint,
-  value,
-  onChange,
-  placeholder,
-  minChars,
-}: {
-  label: string
-  hint: string
-  value: string
-  onChange: (v: string) => void
-  placeholder: string
-  minChars: number
-}) {
-  const short = value.trim().length > 0 && value.trim().length < minChars
-  return (
-    <div className="flex flex-col">
-      <div className="flex items-baseline justify-between">
-        <label className="text-sm font-medium">{label}</label>
-        <span className={`text-xs ${short ? "text-amber-600" : "text-neutral-500"}`}>
-          {value.trim().length === 0
-            ? hint
-            : short
-              ? `a bit thin — ${minChars - value.trim().length} more chars helps`
-              : `${value.trim().length} chars`}
-        </span>
-      </div>
-      <textarea
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        placeholder={placeholder}
-        rows={10}
-        className="mt-1.5 resize-y rounded-lg border border-neutral-300 bg-white p-3 text-sm leading-relaxed outline-none focus:border-brand-500 dark:border-neutral-700 dark:bg-neutral-900"
-      />
-    </div>
-  )
-}
-
 export function SetupScreen(props: Props) {
-  const [showSample, setShowSample] = useState(false)
+  const [showManual, setShowManual] = useState(false)
+  const [linkedInConnected, setLinkedInConnected] = useState(false)
   const ready = props.jobDescription.trim().length > 80 && props.resume.trim().length > 80
 
+  function loadLinkedInDemo() {
+    props.setJobDescription(SAMPLE_JD)
+    props.setResume(SAMPLE_RESUME)
+    props.setLevel("intermediate")
+    props.setMode("pressure")
+    props.setRounds(5)
+    setLinkedInConnected(true)
+  }
+
   return (
-    <div className="mx-auto max-w-5xl px-6 py-10">
-      <header className="mb-8">
-        <p className="text-sm font-medium text-brand-600">Mock interview</p>
-        <h1 className="mt-1 text-3xl font-bold tracking-tight">
-          Paste the job, paste your resume.
-        </h1>
-        <p className="mt-2 max-w-2xl text-neutral-600 dark:text-neutral-400">
-          You&apos;ll get a phone-style screen written against that specific role, a
-          scored breakdown of how you did, and a cheat sheet of what to revise before the
-          real thing.
-        </p>
-      </header>
+    <div className="relative min-h-[calc(100vh-65px)] overflow-hidden bg-white">
+      <main className="grid min-h-[calc(100vh-65px)] md:grid-cols-[1.08fr_0.92fr]">
+        <section className="relative hidden overflow-hidden md:block">
+          <Image
+            src="/welcome-interview-v2.png"
+            alt="Candidate greeting interviewers"
+            fill
+            priority
+            className="object-cover"
+          />
+          <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(6,95,70,0.08),rgba(14,165,233,0.12)),radial-gradient(circle_at_20%_12%,rgba(255,255,255,0.4),transparent_30%)]" />
+          <div className="absolute left-8 top-8 flex items-center gap-2 rounded-full bg-white/78 px-4 py-2 text-sm font-semibold text-neutral-950 shadow-sm backdrop-blur">
+            <span className="h-2 w-2 rounded-full bg-emerald-500" />
+            Real interview practice
+          </div>
+          <div className="absolute inset-x-8 bottom-8 rounded-[1.75rem] border border-white/35 bg-white/18 p-5 text-white shadow-2xl backdrop-blur-md">
+            <p className="text-xs font-bold uppercase tracking-wide text-white/75">
+              Profile insight
+            </p>
+            <p className="mt-2 max-w-xl text-2xl font-semibold leading-tight">
+              Know which parts of your profile will be challenged before the real call.
+            </p>
+          </div>
+        </section>
 
-      {!props.hasKey ? (
-        <div className="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 dark:border-amber-800 dark:bg-amber-950">
-          <p className="text-sm text-amber-900 dark:text-amber-200">
-            Add your Gemini API key to begin. It stays in this browser.
+        <section className="relative flex min-h-[calc(100vh-65px)] flex-col items-center justify-center overflow-hidden px-6 py-8 sm:px-8 md:px-10 md:py-10">
+          <div className="relative w-full max-w-md text-center">
+          <h1 className="text-6xl font-black leading-[0.88] tracking-normal text-neutral-950 sm:text-7xl">
+            Get that
+            <span className="block text-brand-600">job.</span>
+          </h1>
+          <p className="mx-auto mt-5 max-w-md text-lg leading-8 text-neutral-600">
+            The most realistic and honest interview practice platform to help you get
+            any job.
           </p>
-          <Button onClick={props.onOpenSettings}>Add API key</Button>
-        </div>
-      ) : null}
 
-      <div className="grid gap-6 md:grid-cols-2">
-        <Field
-          label="LinkedIn job description"
-          hint="paste the full posting"
-          value={props.jobDescription}
-          onChange={props.setJobDescription}
-          minChars={200}
-          placeholder={
-            "Senior Frontend Engineer at Acme\n\nAbout the role...\nRequirements:\n- 4+ years with React and TypeScript\n- Experience with Next.js App Router\n..."
-          }
-        />
-        <Field
-          label="Your resume"
-          hint="paste the text of your CV"
-          value={props.resume}
-          onChange={props.setResume}
-          minChars={200}
-          placeholder={
-            "Raj Gohil — Frontend Engineer\n\nExperience\nAcme (2022–now) — built the design system...\n\nSkills\nReact, TypeScript, Node..."
-          }
-        />
-      </div>
+          <div className="mx-auto mt-7">
+            <Button
+              className="mx-auto h-12 w-auto min-w-[220px] gap-3 bg-[#0a66c2] px-5 text-sm text-white shadow-[0_18px_45px_rgba(10,102,194,0.22)] hover:bg-[#004182] focus-visible:outline-[#0a66c2] dark:bg-[#0a66c2] dark:text-white dark:hover:bg-[#004182]"
+              onClick={props.onLinkedIn}
+              disabled={props.busy}
+            >
+              <span className="flex h-7 w-7 items-center justify-center rounded-md bg-white text-sm font-bold text-[#0a66c2]">
+                in
+              </span>
+              Connect LinkedIn
+            </Button>
+            <p className="mt-3 text-center text-xs leading-5 text-neutral-500">
+              We use your profile to detect risky claims, role gaps, and the questions
+              interviewers are most likely to ask.
+            </p>
+          </div>
 
-      <div className="mt-8">
-        <p className="text-sm font-medium">Experience level</p>
-        <div className="mt-2 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
-          {EXPERIENCE_LEVELS.map((l) => {
-            const active = props.level === l.value
-            return (
-              <button
-                key={l.value}
-                onClick={() => props.setLevel(l.value)}
-                className={`rounded-lg border p-3 text-left transition-colors ${
-                  active
-                    ? "border-brand-500 bg-brand-50 dark:bg-brand-500/10"
-                    : "border-neutral-200 hover:border-neutral-400 dark:border-neutral-800"
-                }`}
+          {!props.hasKey ? (
+            <div className="mx-auto mt-5 flex max-w-md flex-col items-stretch gap-3 rounded-2xl border border-amber-200 bg-amber-50/80 px-4 py-3 text-left shadow-sm backdrop-blur sm:flex-row sm:items-center sm:justify-between dark:border-amber-800 dark:bg-amber-950">
+              <p className="text-sm text-amber-900 dark:text-amber-200">
+                Add your Gemini key before analysis.
+              </p>
+              <Button
+                variant="secondary"
+                className="shrink-0 whitespace-nowrap px-5"
+                onClick={props.onOpenSettings}
               >
-                <span className="block text-sm font-semibold">{l.label}</span>
-                <span className="mt-0.5 block text-xs text-neutral-500">{l.hint}</span>
-              </button>
-            )
-          })}
-        </div>
-      </div>
+                Add key
+              </Button>
+            </div>
+          ) : null}
 
-      <div className="mt-8 flex flex-wrap items-end gap-6">
-        <div>
-          <label className="text-sm font-medium" htmlFor="rounds">
-            Questions
-          </label>
-          <select
-            id="rounds"
-            value={props.rounds}
-            onChange={(e) => props.setRounds(Number(e.target.value))}
-            className="mt-1.5 block rounded-md border border-neutral-300 bg-white px-3 py-2 text-sm dark:border-neutral-700 dark:bg-neutral-900"
-          >
-            {[4, 5, 6, 8].map((n) => (
-              <option key={n} value={n}>
-                {n} questions {n <= 5 ? "· quick" : "· full screen"}
-              </option>
-            ))}
-          </select>
-        </div>
+          {linkedInConnected && ready ? (
+            <div className="mx-auto mt-5 flex max-w-md flex-col gap-3 sm:flex-row">
+              <Button
+                className="h-12 flex-1"
+                onClick={props.onStart}
+                disabled={props.busy || !props.hasKey}
+              >
+                {props.busy ? "Mapping your risks..." : "Start pressure prep"}
+              </Button>
+              <Button
+                variant="secondary"
+                className="h-12"
+                onClick={() => setShowManual((s) => !s)}
+              >
+                Edit details
+              </Button>
+            </div>
+          ) : !showManual ? (
+            <button
+              className="mt-5 text-sm font-medium text-neutral-500 underline underline-offset-4 hover:text-neutral-900"
+              onClick={() => setShowManual((s) => !s)}
+            >
+              Use manual demo inputs
+            </button>
+          ) : null}
 
-        <Button
-          className="px-6 py-2.5"
-          onClick={props.onStart}
-          disabled={!ready || props.busy || !props.hasKey}
-        >
-          {props.busy ? "Writing your interview…" : "Start interview"}
-        </Button>
+          {props.error ? (
+            <p className="mx-auto mt-4 max-w-md rounded-2xl bg-red-50 px-4 py-3 text-sm text-red-700 dark:bg-red-950 dark:text-red-300">
+              {props.error}
+            </p>
+          ) : null}
 
-        {!ready ? (
-          <p className="text-sm text-neutral-500">
-            Paste both the job description and your resume to continue.
-          </p>
-        ) : null}
-      </div>
-
-      {props.error ? (
-        <p className="mt-4 rounded-md bg-red-50 px-3 py-2 text-sm text-red-700 dark:bg-red-950 dark:text-red-300">
-          {props.error}
-        </p>
-      ) : null}
-
-      <button
-        className="mt-8 text-sm text-neutral-500 underline"
-        onClick={() => setShowSample((s) => !s)}
-      >
-        {showSample ? "Hide" : "No posting handy? Load a sample"}
-      </button>
-      {showSample ? (
-        <div className="mt-3">
-          <Button
-            variant="secondary"
-            onClick={() => {
-              props.setJobDescription(SAMPLE_JD)
-              props.setResume(SAMPLE_RESUME)
-            }}
-          >
-            Fill both fields with a sample
-          </Button>
-        </div>
-      ) : null}
+          {showManual ? (
+            <div className="mt-6 rounded-[1.5rem] border border-white/70 bg-white/75 p-4 text-left shadow-sm backdrop-blur dark:border-neutral-800 dark:bg-neutral-900/75">
+              <div className="grid gap-3">
+                <textarea
+                  value={props.jobDescription}
+                  onChange={(e) => props.setJobDescription(e.target.value)}
+                  rows={4}
+                  placeholder="Paste job description"
+                  className="resize-y rounded-2xl border border-neutral-200 bg-white/80 p-3 text-sm outline-none focus:border-brand-500 dark:border-neutral-800 dark:bg-neutral-950"
+                />
+                <textarea
+                  value={props.resume}
+                  onChange={(e) => props.setResume(e.target.value)}
+                  rows={4}
+                  placeholder="Paste resume or LinkedIn profile text"
+                  className="resize-y rounded-2xl border border-neutral-200 bg-white/80 p-3 text-sm outline-none focus:border-brand-500 dark:border-neutral-800 dark:bg-neutral-950"
+                />
+              </div>
+              <div className="mt-3 flex flex-wrap gap-2">
+                <Button variant="secondary" onClick={loadLinkedInDemo}>
+                  Fill demo profile
+                </Button>
+                <Button onClick={props.onStart} disabled={!ready || props.busy || !props.hasKey}>
+                  {props.busy ? "Mapping..." : "Analyze"}
+                </Button>
+              </div>
+            </div>
+          ) : null}
+          </div>
+          <div className="relative mt-8 overflow-hidden rounded-[1.75rem] shadow-2xl md:hidden">
+            <Image
+              src="/welcome-interview-v2.png"
+              alt="Candidate greeting interviewers"
+              width={900}
+              height={620}
+              className="h-64 w-full object-cover"
+            />
+            <div className="absolute inset-x-3 bottom-3 rounded-2xl bg-white/86 p-3 text-left shadow-lg backdrop-blur">
+              <p className="text-xs font-semibold uppercase text-brand-700">
+                Likely interviewer probe
+              </p>
+              <p className="mt-1 text-sm font-semibold leading-snug text-neutral-950">
+                &quot;Your LinkedIn says you led the launch. What did you personally own?&quot;
+              </p>
+            </div>
+          </div>
+        </section>
+      </main>
     </div>
   )
 }

@@ -35,18 +35,79 @@ export const QUESTION_SCHEMA: Schema = {
             type: "STRING",
             description: "What a strong answer contains. Never shown to the candidate.",
           },
+          pressureTarget: {
+            type: "STRING",
+            description: "Specific resume claim, gap, or risk this question stress-tests.",
+          },
         },
-        required: ["kind", "text", "lookingFor"],
+        required: ["kind", "text", "lookingFor", "pressureTarget"],
       },
     },
   },
   required: ["roleTitle", "company", "questions"],
 }
 
+export const RISK_MAP_SCHEMA: Schema = {
+  type: "OBJECT",
+  properties: {
+    roleMatch: { type: "NUMBER", description: "0-100 estimate of JD/resume match" },
+    strongestSignals: { type: "ARRAY", items: { type: "STRING" } },
+    risks: {
+      type: "ARRAY",
+      items: {
+        type: "OBJECT",
+        properties: {
+          severity: { type: "STRING", enum: ["high", "medium", "low"] },
+          title: { type: "STRING" },
+          resumeClaim: { type: "STRING" },
+          whyRisky: { type: "STRING" },
+          likelyProbe: { type: "STRING" },
+        },
+        required: ["severity", "title", "resumeClaim", "whyRisky", "likelyProbe"],
+      },
+    },
+    plan: {
+      type: "ARRAY",
+      items: {
+        type: "OBJECT",
+        properties: {
+          label: { type: "STRING" },
+          minutes: { type: "NUMBER" },
+          focus: { type: "STRING" },
+        },
+        required: ["label", "minutes", "focus"],
+      },
+    },
+  },
+  required: ["roleMatch", "strongestSignals", "risks", "plan"],
+}
+
+export function riskMapPrompt(setup: InterviewSetup) {
+  return `Create a pre-interview risk map before a mock interview.
+
+CANDIDATE LEVEL: ${setup.level} — ${LEVEL_BRIEF[setup.level]}
+INTERVIEW MODE: ${setup.mode}
+
+=== JOB DESCRIPTION ===
+${setup.jobDescription}
+
+=== CANDIDATE RESUME ===
+${setup.resume}
+
+Rules:
+- Extract the 3 strongest resume/JD fit signals.
+- Extract exactly 3 interview risks a real interviewer would probably challenge.
+- At least one risk must be a concrete resume claim that needs defense.
+- likelyProbe should be phrased as the interviewer question.
+- Keep every field short enough for a product UI card.
+- The plan should have 4 concise interview sections with realistic minute estimates.`
+}
+
 export function questionPrompt(setup: InterviewSetup, count: number) {
   return `Design a ${count}-question phone screen.
 
 CANDIDATE LEVEL: ${setup.level} — ${LEVEL_BRIEF[setup.level]}
+INTERVIEW MODE: ${setup.mode}
 
 === JOB DESCRIPTION ===
 ${setup.jobDescription}
@@ -58,9 +119,11 @@ Rules:
 - Question 1 is "intro": a warm opener that names something specific from their resume.
 - Cover the JD's actual named technologies and responsibilities, weighted by how central they are.
 - At least one question must dig into a specific project or claim on the resume by name.
+- In pressure mode, at least half the questions must deliberately stress-test weak evidence, unclear ownership, missing metrics, or a risky resume claim.
 - ${setup.level === "fresher" ? "Skip system design; favour fundamentals and project depth." : "Include one system-design or architecture question scaled to their level."}
 - Include one behavioural question grounded in the JD's team context.
 - Each question is one or two sentences, conversational, as if spoken on a call.
+- pressureTarget names the exact claim, gap, or competency being tested.
 - No numbering, no preamble in the question text.`
 }
 
@@ -127,7 +190,7 @@ CANDIDATE (${a?.seconds ?? 0}s): ${a?.text?.trim() || "(no answer given)"}`
     })
     .join("\n\n")
 
-  return `Grade this ${setup.level}-level phone screen for "${setup.roleTitle}".
+  return `Grade this ${setup.level}-level ${setup.mode} phone screen for "${setup.roleTitle}".
 
 === JOB DESCRIPTION ===
 ${setup.jobDescription}
@@ -140,6 +203,7 @@ Rules:
 - Score every question by its questionId exactly as given in brackets.
 - An unanswered or empty question scores below 20.
 - Use exactly these four dimensions: "Technical depth", "Communication", "Role fit", "Structure".
+- Call out weak ownership, missing evidence, and contradiction risk when present.
 - Be specific and quote the candidate where it helps. No flattery, no hedging.
 - "missed" must name concrete things, not vague advice like "add more detail".`
 }

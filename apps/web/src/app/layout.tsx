@@ -3,9 +3,9 @@ import type { Metadata } from "next"
 import "./globals.css"
 
 export const metadata: Metadata = {
-  title: "Interview Prep — mock interviews from a real job description",
+  title: "Pressure — AI interview stress test",
   description:
-    "Paste a LinkedIn job description and your resume, run a phone-style mock interview, and get scored feedback plus a revision cheat sheet.",
+    "Map the resume claims a real interviewer will challenge, run a pressure interview, and retry weak answers with targeted feedback.",
 }
 
 export default function RootLayout({
@@ -13,7 +13,7 @@ export default function RootLayout({
 }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en">
-      <body className="min-h-screen bg-white text-neutral-900 antialiased dark:bg-neutral-950 dark:text-neutral-50">
+      <body className="min-h-screen bg-[#f7f9f8] text-neutral-950 antialiased dark:bg-neutral-950 dark:text-neutral-50">
         {children}
       </body>
     </html>

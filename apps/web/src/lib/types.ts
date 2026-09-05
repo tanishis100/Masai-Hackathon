@@ -1,4 +1,5 @@
 export type ExperienceLevel = "fresher" | "intermediate" | "senior" | "lead"
+export type InterviewMode = "practice" | "challenging" | "pressure"
 
 export const EXPERIENCE_LEVELS: {
   value: ExperienceLevel
@@ -20,6 +21,7 @@ export type Question = {
   text: string
   /** What a strong answer contains — used to grade, never shown before answering. */
   lookingFor: string
+  pressureTarget?: string
 }
 
 export type Answer = {
@@ -46,6 +48,27 @@ export type Feedback = {
   perQuestion: PerQuestionScore[]
 }
 
+export type RiskItem = {
+  severity: "high" | "medium" | "low"
+  title: string
+  resumeClaim: string
+  whyRisky: string
+  likelyProbe: string
+}
+
+export type InterviewPlanItem = {
+  label: string
+  minutes: number
+  focus: string
+}
+
+export type RiskMap = {
+  roleMatch: number
+  strongestSignals: string[]
+  risks: RiskItem[]
+  plan: InterviewPlanItem[]
+}
+
 export type CheatSheetLink = {
   label: string
   url: string
@@ -70,8 +93,20 @@ export type InterviewSetup = {
   jobDescription: string
   resume: string
   level: ExperienceLevel
+  mode: InterviewMode
   roleTitle: string
   company: string
 }
 
-export type Stage = "setup" | "interview" | "grading" | "feedback" | "cheatsheet"
+export type Stage =
+  | "setup"
+  | "profile-import"
+  | "linkedin-loading"
+  | "job-scan"
+  | "job-matches"
+  | "call"
+  | "risk-map"
+  | "interview"
+  | "grading"
+  | "feedback"
+  | "cheatsheet"

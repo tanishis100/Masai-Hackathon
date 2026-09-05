@@ -62,6 +62,7 @@ export function FeedbackScreen({
   answers,
   onCheatSheet,
   onRestart,
+  onRetry,
   cheatBusy,
 }: {
   feedback: Feedback
@@ -69,14 +70,16 @@ export function FeedbackScreen({
   answers: Answer[]
   onCheatSheet: () => void
   onRestart: () => void
+  onRetry: (questionId: string) => void
   cheatBusy: boolean
 }) {
   return (
-    <div className="mx-auto max-w-4xl px-6 py-10">
-      <p className="text-sm font-medium text-brand-600">Round complete</p>
-      <h1 className="mt-1 text-3xl font-bold tracking-tight">How you did</h1>
+    <div className="relative mx-auto max-w-5xl px-6 py-10">
+      <div className="pointer-events-none absolute -top-24 left-0 -z-10 h-80 w-80 rounded-full bg-sky-200/60 blur-3xl dark:bg-sky-900/20" />
+      <p className="text-sm font-medium text-brand-700 dark:text-brand-400">Round complete</p>
+      <h1 className="mt-1 text-5xl font-black leading-tight">Interview readiness</h1>
 
-      <div className="mt-6 flex flex-col gap-6 rounded-xl border border-neutral-200 p-6 sm:flex-row sm:items-center dark:border-neutral-800">
+      <div className="mt-6 flex flex-col gap-6 rounded-[2rem] border border-white/70 bg-white/70 p-6 shadow-sm backdrop-blur sm:flex-row sm:items-center dark:border-neutral-800 dark:bg-neutral-900/70">
         <Ring score={feedback.overall} />
         <div className="min-w-0">
           <p className="text-xl font-semibold">{feedback.headline}</p>
@@ -90,7 +93,7 @@ export function FeedbackScreen({
         {feedback.dimensions.map((d) => (
           <div
             key={d.name}
-            className="rounded-lg border border-neutral-200 p-4 dark:border-neutral-800"
+            className="rounded-[1.5rem] border border-white/70 bg-white/65 p-4 shadow-sm backdrop-blur dark:border-neutral-800 dark:bg-neutral-900/55"
           >
             <div className="flex items-baseline justify-between">
               <span className="font-medium">{d.name}</span>
@@ -112,7 +115,7 @@ export function FeedbackScreen({
       </div>
 
       <div className="mt-6 grid gap-4 sm:grid-cols-2">
-        <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-4 dark:border-emerald-900 dark:bg-emerald-950/40">
+        <div className="rounded-[1.5rem] border border-emerald-200 bg-white/75 p-4 shadow-sm backdrop-blur dark:border-emerald-900 dark:bg-emerald-950/40">
           <h3 className="font-semibold text-emerald-800 dark:text-emerald-300">
             What worked
           </h3>
@@ -122,7 +125,7 @@ export function FeedbackScreen({
             ))}
           </ul>
         </div>
-        <div className="rounded-lg border border-red-200 bg-red-50 p-4 dark:border-red-900 dark:bg-red-950/40">
+        <div className="rounded-[1.5rem] border border-red-200 bg-white/75 p-4 shadow-sm backdrop-blur dark:border-red-900 dark:bg-red-950/40">
           <h3 className="font-semibold text-red-800 dark:text-red-300">What cost you</h3>
           <ul className="mt-2 space-y-1.5 text-sm text-red-900 dark:text-red-200">
             {feedback.gaps.map((s, i) => (
@@ -140,7 +143,7 @@ export function FeedbackScreen({
           return (
             <details
               key={q.id}
-              className="rounded-lg border border-neutral-200 p-4 dark:border-neutral-800"
+              className="rounded-[1.5rem] border border-white/70 bg-white/70 p-4 shadow-sm backdrop-blur dark:border-neutral-800 dark:bg-neutral-900/65"
             >
               <summary className="flex cursor-pointer items-start gap-3">
                 <span
@@ -179,6 +182,9 @@ export function FeedbackScreen({
                     </ul>
                   </div>
                 ) : null}
+                <Button variant="secondary" onClick={() => onRetry(q.id)}>
+                  Retry this question
+                </Button>
               </div>
             </details>
           )

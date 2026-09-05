@@ -86,11 +86,12 @@ export function InterviewScreen({
   if (!current) return null
 
   return (
-    <div className="mx-auto flex min-h-screen max-w-3xl flex-col px-6 py-8">
+    <div className="relative mx-auto flex min-h-screen max-w-4xl flex-col px-6 py-8">
+      <div className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[32rem] rounded-b-[3rem] bg-[linear-gradient(135deg,rgba(56,189,248,0.42),rgba(226,232,240,0.72),rgba(251,207,232,0.30))] blur-0 dark:from-sky-950/50 dark:via-neutral-900 dark:to-pink-950/30" />
       {/* Call header */}
-      <div className="flex items-center gap-4 rounded-2xl border border-neutral-200 bg-neutral-50 p-4 dark:border-neutral-800 dark:bg-neutral-900">
+      <div className="mx-auto flex w-full max-w-2xl items-center gap-4 rounded-[2rem] border border-white/55 bg-white/40 p-5 shadow-sm backdrop-blur-md dark:border-white/10 dark:bg-white/10">
         <div className="relative">
-          <div className="flex h-14 w-14 items-center justify-center rounded-full bg-brand-600 text-lg font-semibold text-white">
+          <div className="flex h-16 w-16 items-center justify-center rounded-full bg-white/80 text-lg font-semibold text-neutral-950 shadow-sm">
             {(company || "AI").slice(0, 2).toUpperCase()}
           </div>
           {speaking ? (
@@ -101,15 +102,15 @@ export function InterviewScreen({
           ) : null}
         </div>
         <div className="min-w-0 flex-1">
-          <p className="truncate font-semibold">{roleTitle || "Phone screen"}</p>
-          <p className="truncate text-sm text-neutral-500">
+          <p className="truncate text-lg font-semibold">{roleTitle || "Phone screen"}</p>
+          <p className="truncate text-sm text-neutral-600 dark:text-neutral-300">
             {company ? `${company} · ` : ""}
             {speaking ? "speaking…" : "listening"}
           </p>
         </div>
         <div className="text-right">
-          <p className="font-mono text-lg tabular-nums">{clock(elapsed)}</p>
-          <p className="text-xs text-neutral-500">
+          <p className="font-mono text-2xl tabular-nums">{clock(elapsed)}</p>
+          <p className="text-xs text-neutral-600 dark:text-neutral-300">
             {index + 1} of {questions.length}
           </p>
         </div>
@@ -132,11 +133,16 @@ export function InterviewScreen({
       </div>
 
       {/* Question */}
-      <div className="mt-8">
-        <span className="inline-block rounded-full bg-neutral-100 px-2.5 py-1 text-xs font-medium text-neutral-600 dark:bg-neutral-800 dark:text-neutral-400">
+      <div className="mt-10 rounded-[2rem] border border-white/55 bg-white/55 p-6 shadow-sm backdrop-blur-md dark:border-white/10 dark:bg-neutral-950/45">
+        <span className="inline-block rounded-full bg-white/70 px-3 py-1 text-xs font-medium text-neutral-600 shadow-sm dark:bg-neutral-800 dark:text-neutral-400">
           {KIND_LABEL[current.kind] ?? current.kind}
         </span>
-        <p className="mt-3 text-2xl leading-snug font-medium">{current.text}</p>
+        <p className="mt-4 text-3xl leading-snug font-semibold">{current.text}</p>
+        {current.pressureTarget ? (
+          <p className="mt-3 max-w-2xl text-sm text-neutral-600 dark:text-neutral-400">
+            Pressure target: {current.pressureTarget}
+          </p>
+        ) : null}
         <div className="mt-3 flex flex-wrap gap-3 text-sm">
           <button
             className="text-brand-600 underline"
@@ -168,7 +174,7 @@ export function InterviewScreen({
               ? "Speak your answer, or type it here…"
               : "Type your answer here…"
           }
-          className="w-full resize-y rounded-lg border border-neutral-300 bg-white p-4 text-base leading-relaxed outline-none focus:border-brand-500 dark:border-neutral-700 dark:bg-neutral-900"
+          className="w-full resize-y rounded-[1.75rem] border border-white/70 bg-white/70 p-5 text-base leading-relaxed shadow-sm outline-none backdrop-blur focus:border-brand-500 dark:border-neutral-800 dark:bg-neutral-900/75"
         />
         <div className="mt-2 flex items-center justify-between text-xs text-neutral-500">
           <span>
@@ -180,7 +186,7 @@ export function InterviewScreen({
       </div>
 
       {/* Controls */}
-      <div className="sticky bottom-0 mt-6 flex flex-wrap items-center gap-3 border-t border-neutral-200 bg-white py-4 dark:border-neutral-800 dark:bg-neutral-950">
+      <div className="sticky bottom-0 mt-6 flex flex-wrap items-center gap-3 border-t border-white/60 bg-[#f7f9f8]/85 py-4 backdrop-blur dark:border-neutral-800 dark:bg-neutral-950/85">
         {mic.supported ? (
           <button
             onClick={mic.listening ? mic.stop : mic.start}

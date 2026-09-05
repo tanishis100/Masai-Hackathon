@@ -12,8 +12,9 @@ export default function Docs() {
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2">
-        <Card href="http://localhost:3000" title="Web app">
-          The primary workspace app, served on port 3000.
+        <Card title="Web app">
+          The Pressure interview platform. Deployed from apps/web as its own Vercel
+          project; runs on port 3000 in local development.
         </Card>
         <Card title="Turborepo">
           Tasks are cached per package, so unchanged workspaces are never rebuilt.

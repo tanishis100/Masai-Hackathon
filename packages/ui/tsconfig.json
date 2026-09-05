@@ -1,0 +1,5 @@
+{
+  "extends": "@repo/typescript-config/react-library.json",
+  "include": ["src", "eslint.config.js"],
+  "exclude": ["node_modules", "dist"]
+}

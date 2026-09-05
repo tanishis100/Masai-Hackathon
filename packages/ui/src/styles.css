@@ -1,0 +1,11 @@
+/*
+ * Design tokens shared by every app. Apps import this once, before their own
+ * `@import "tailwindcss"` sources are scanned.
+ */
+@theme {
+  --color-brand-50: oklch(0.97 0.02 260);
+  --color-brand-100: oklch(0.93 0.05 260);
+  --color-brand-500: oklch(0.62 0.19 260);
+  --color-brand-600: oklch(0.55 0.19 260);
+  --color-brand-700: oklch(0.47 0.17 260);
+}

@@ -35,7 +35,7 @@ export function SetupScreen(props: Props) {
     props.setResume(SAMPLE_RESUME)
     props.setLevel("intermediate")
     props.setMode("pressure")
-    props.setRounds(5)
+    props.setRounds(7)
     setLinkedInConnected(true)
   }
 
@@ -82,10 +82,7 @@ export function SetupScreen(props: Props) {
               onClick={props.onLinkedIn}
               disabled={props.busy}
             >
-              <span className="flex h-7 w-7 items-center justify-center rounded-md bg-white text-sm font-bold text-[#0a66c2]">
-                in
-              </span>
-              Connect LinkedIn
+              Master your interview
             </Button>
             <p className="mt-3 text-center text-xs leading-5 text-neutral-500">
               We use your profile to detect risky claims, role gaps, and the questions

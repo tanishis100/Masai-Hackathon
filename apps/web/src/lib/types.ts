@@ -101,7 +101,6 @@ export type InterviewSetup = {
 export type Stage =
   | "setup"
   | "profile-import"
-  | "linkedin-loading"
   | "job-scan"
   | "job-matches"
   | "call"

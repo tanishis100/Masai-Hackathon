@@ -104,7 +104,7 @@ Rules:
 }
 
 export function questionPrompt(setup: InterviewSetup, count: number) {
-  return `Design a ${count}-question phone screen.
+  return `Design exactly ${count} questions for an adaptive phone screen. The interview must contain exactly 7 questions.
 
 CANDIDATE LEVEL: ${setup.level} — ${LEVEL_BRIEF[setup.level]}
 INTERVIEW MODE: ${setup.mode}
@@ -117,6 +117,8 @@ ${setup.resume}
 
 Rules:
 - Question 1 is "intro": a warm opener that names something specific from their resume.
+- Questions 2-7 are purposeful follow-ups. Each should go one layer deeper into the candidate's previous answer, ownership, evidence, trade-offs, or a claim that needs verification.
+- Build a coherent conversation arc: opener, experience proof, technical depth, trade-off or system design, behavioural pressure test, contradiction check, and final role-fit question.
 - Cover the JD's actual named technologies and responsibilities, weighted by how central they are.
 - At least one question must dig into a specific project or claim on the resume by name.
 - In pressure mode, at least half the questions must deliberately stress-test weak evidence, unclear ownership, missing metrics, or a risky resume claim.

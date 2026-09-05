@@ -21,11 +21,6 @@ const STEPS: Record<string, string[]> = {
     "Comparing skills, seniority, and role signals",
     "Preparing your strongest matches",
   ],
-  "linkedin-loading": [
-    "Connecting to LinkedIn",
-    "Reading your profile signals",
-    "Personalizing your preparation",
-  ],
   cheatsheet: [
     "Finding what cost you most",
     "Pulling the topics to revise",

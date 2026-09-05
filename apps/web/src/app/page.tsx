@@ -44,9 +44,10 @@ export default function Home() {
 
   const [jobDescription, setJobDescription] = useState("")
   const [resume, setResume] = useState("")
+  const [linkedinUrl, setLinkedinUrl] = useState("")
   const [level, setLevel] = useState<ExperienceLevel>("intermediate")
   const [mode, setMode] = useState<InterviewMode>("pressure")
-  const [rounds, setRounds] = useState(5)
+  const [rounds, setRounds] = useState(7)
 
   const [stage, setStage] = useState<Stage>("setup")
   const [busy, setBusy] = useState(false)
@@ -65,12 +66,6 @@ export default function Home() {
       setJobDescription(SAMPLE_JOB_DESCRIPTION)
       setStage("job-matches")
     }, 3200)
-    return () => window.clearTimeout(timer)
-  }, [stage])
-
-  useEffect(() => {
-    if (stage !== "linkedin-loading") return
-    const timer = window.setTimeout(() => setStage("profile-import"), 1800)
     return () => window.clearTimeout(timer)
   }, [stage])
 
@@ -131,11 +126,13 @@ export default function Home() {
         apiKey,
         model,
         system: INTERVIEWER_SYSTEM,
-        prompt: questionPrompt(s, rounds),
+        prompt: questionPrompt(s, 7),
         schema: QUESTION_SCHEMA,
       })
 
-      if (!out.questions?.length) throw new Error("Gemini returned no questions. Retry.")
+      if (!out.questions || out.questions.length < 7) {
+        throw new Error("The interviewer could not prepare all 7 follow-up questions. Retry.")
+      }
 
       setSetup({ ...s, roleTitle: out.roleTitle, company: out.company })
       setQuestions(out.questions.map((q, i) => ({ ...q, id: `q${i + 1}` })))
@@ -214,11 +211,12 @@ export default function Home() {
   function connectLinkedIn() {
     // Frontend demo state until a LinkedIn OAuth callback is provided by the backend.
     setResume(SAMPLE_LINKEDIN_PROFILE)
-    setStage("linkedin-loading")
+    setStage("profile-import")
     setError(null)
   }
 
   function continueFromProfile() {
+    if (!resume.trim() && linkedinUrl.trim()) setResume(SAMPLE_LINKEDIN_PROFILE)
     setStage("job-scan")
     setError(null)
   }
@@ -274,11 +272,11 @@ export default function Home() {
         <ProfileImportScreen
           resume={resume}
           setResume={setResume}
+          linkedinUrl={linkedinUrl}
+          setLinkedinUrl={setLinkedinUrl}
           onContinue={continueFromProfile}
         />
       ) : null}
-
-      {stage === "linkedin-loading" ? <Thinking kind="linkedin-loading" /> : null}
 
       {stage === "job-scan" ? <Thinking kind="job-scan" /> : null}
 
@@ -361,13 +359,13 @@ export default function Home() {
 const SAMPLE_LINKEDIN_PROFILE = `Priya Nair — Frontend Engineer
 Bengaluru · 2,400 followers
 
-Experience
-Zeta Commerce (2022 - present) — Frontend Engineer
+Experience · 6 years
+Zeta Commerce (2022 - present) — Senior Frontend Engineer
 - Built the seller analytics dashboard in React + TypeScript, used by 4k sellers
 - Cut initial bundle from 890kB to 310kB by code-splitting routes and lazy charts
 - Added a WebSocket order feed with optimistic updates and reconnect backoff
 
-Freshworks (2021 - 2022) — Junior Frontend Engineer
+Freshworks (2020 - 2022) — Frontend Engineer
 - Maintained internal admin tooling in React 17
 - Wrote the team's first Playwright end-to-end suite
 

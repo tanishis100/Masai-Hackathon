@@ -76,8 +76,9 @@ export function FeedbackScreen({
   return (
     <div className="relative mx-auto max-w-5xl px-6 py-10">
       <div className="pointer-events-none absolute -top-24 left-0 -z-10 h-80 w-80 rounded-full bg-sky-200/60 blur-3xl dark:bg-sky-900/20" />
-      <p className="text-sm font-medium text-brand-700 dark:text-brand-400">Round complete</p>
+      <p className="text-sm font-medium text-brand-700 dark:text-brand-400">Complete interview report</p>
       <h1 className="mt-1 text-5xl font-black leading-tight">Interview readiness</h1>
+      <p className="mt-2 text-sm text-neutral-500">Evidence from {questions.length} questions, including your strongest answers and the claims that need another pass.</p>
 
       <div className="mt-6 flex flex-col gap-6 rounded-[2rem] border border-white/70 bg-white/70 p-6 shadow-sm backdrop-blur sm:flex-row sm:items-center dark:border-neutral-800 dark:bg-neutral-900/70">
         <Ring score={feedback.overall} />

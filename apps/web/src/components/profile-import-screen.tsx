@@ -3,6 +3,12 @@
 import { useRef, useState } from "react"
 import { Button } from "@repo/ui/button"
 
+import {
+  ACCEPTED_FILE_TYPES,
+  UnsupportedFileError,
+  extractResumeText,
+} from "@/lib/extract-text"
+
 export function ProfileImportScreen({
   resume,
   setResume,
@@ -19,26 +25,36 @@ export function ProfileImportScreen({
   const inputRef = useRef<HTMLInputElement | null>(null)
   const [fileName, setFileName] = useState("")
   const [fileError, setFileError] = useState("")
+  const [parsing, setParsing] = useState(false)
   const ready = linkedinUrl.trim().length > 0 || resume.trim().length > 0
 
-  /* Only plain text can be read here. A PDF or DOCX run through readAsText
-     yields binary noise, which would be sent to the model as if it were a
-     resume, so those are refused with an explanation instead. */
-  function readFile(file: File) {
-    if (!/\.(txt|md)$/i.test(file.name)) {
+  /* PDF and DOCX are parsed properly rather than read as text - reading either
+     with readAsText yields binary noise. Parsing runs in the browser, so the
+     file never leaves the machine. */
+  async function readFile(file: File) {
+    setFileError("")
+    setParsing(true)
+    setFileName(file.name)
+    try {
+      const text = await extractResumeText(file)
+      if (!text) {
+        setFileName("")
+        setFileError(
+          "No text found in that file. If it is a scanned PDF, paste the text below instead.",
+        )
+        return
+      }
+      setResume(text)
+    } catch (error) {
       setFileName("")
       setFileError(
-        `${file.name} can't be read in the browser yet. Export it as .txt, or paste the text below.`,
+        error instanceof UnsupportedFileError
+          ? error.message
+          : "That file could not be read. Paste the text below instead.",
       )
-      return
+    } finally {
+      setParsing(false)
     }
-    setFileError("")
-    setFileName(file.name)
-    const reader = new FileReader()
-    reader.onerror = () =>
-      setFileError("That file could not be read. Paste the text below.")
-    reader.onload = () => setResume(String(reader.result ?? ""))
-    reader.readAsText(file)
   }
 
   return (
@@ -75,13 +91,13 @@ export function ProfileImportScreen({
                   Upload resume
                 </span>
                 <span className="block text-xs text-neutral-500">
-                  {fileName || "Plain text (.txt or .md)"}
+                  {parsing ? "Reading…" : fileName || "PDF, DOCX, TXT, or MD"}
                 </span>
               </span>
               <input
                 ref={inputRef}
                 type="file"
-                accept=".txt,.md"
+                accept={ACCEPTED_FILE_TYPES}
                 className="hidden"
                 onChange={(event) => {
                   const file = event.target.files?.[0]
@@ -110,7 +126,7 @@ export function ProfileImportScreen({
             </p>
             <Button
               onClick={onContinue}
-              disabled={!ready}
+              disabled={!ready || parsing}
               className="bg-[#0a66c2] px-8 text-white hover:bg-[#004182]"
             >
               Continue

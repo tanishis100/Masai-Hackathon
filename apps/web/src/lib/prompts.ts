@@ -37,7 +37,8 @@ export const QUESTION_SCHEMA: Schema = {
           },
           pressureTarget: {
             type: "STRING",
-            description: "Specific resume claim, gap, or risk this question stress-tests.",
+            description:
+              "Specific resume claim, gap, or risk this question stress-tests.",
           },
         },
         required: ["kind", "text", "lookingFor", "pressureTarget"],
